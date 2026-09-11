@@ -170,7 +170,8 @@ function ParticipantsSection({ state, onPatch }) {
         <p className="hint">Teams or individuals being judged.</p>
       </div>
 
-      <table className="ledger" style={{ marginBottom: 14 }}>
+      <div className="table-scroll">
+        <table className="ledger" style={{ marginBottom: 14 }}>
         <thead>
           <tr>
             <th>Name</th>
@@ -212,7 +213,8 @@ function ParticipantsSection({ state, onPatch }) {
             </tr>
           ))}
         </tbody>
-      </table>
+        </table>
+      </div>
 
       <div className="row" style={{ maxWidth: 560 }}>
         <div className="field">
@@ -272,7 +274,8 @@ function JudgesSection({ state, onPatch }) {
         <p className="hint">Each judge picks their own name in the Judge tab before scoring.</p>
       </div>
 
-      <table className="ledger" style={{ marginBottom: 14 }}>
+      <div className="table-scroll">
+        <table className="ledger" style={{ marginBottom: 14 }}>
         <thead>
           <tr>
             <th>Judge name</th>
@@ -305,7 +308,8 @@ function JudgesSection({ state, onPatch }) {
             </tr>
           ))}
         </tbody>
-      </table>
+        </table>
+      </div>
 
       <div className="row" style={{ maxWidth: 400 }}>
         <div className="field" style={{ flex: 2 }}>

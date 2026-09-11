@@ -67,7 +67,8 @@ export default function ResultsPanel({ state }) {
         </button>
       </div>
 
-      <table className="ledger">
+      <div className="table-scroll">
+        <table className="ledger">
         <thead>
           <tr>
             <th style={{ width: 36 }}>#</th>
@@ -128,14 +129,16 @@ export default function ResultsPanel({ state }) {
             </Fragment>
           ))}
         </tbody>
-      </table>
+        </table>
+      </div>
     </div>
   );
 }
 
 function BreakdownTable({ participant, judges, criteria, scores }) {
   return (
-    <table className="ledger" style={{ margin: "8px 0" }}>
+    <div className="table-scroll">
+      <table className="ledger" style={{ margin: "8px 0" }}>
       <thead>
         <tr>
           <th>Criterion</th>
@@ -179,6 +182,7 @@ function BreakdownTable({ participant, judges, criteria, scores }) {
           })}
         </tr>
       </tbody>
-    </table>
+      </table>
+    </div>
   );
 }
