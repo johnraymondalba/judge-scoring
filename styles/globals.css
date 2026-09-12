@@ -50,7 +50,11 @@ body {
   background: var(--bg);
   color: var(--ink);
   font-family: var(--font-body);
-  font-size: 15px;
+  /* 16px, not 15px: everything else on the page (pills, chips, tab labels,
+     hints) is sized in rem off this base, so this one number is also what
+     was making all of that secondary text read a bit small on a desktop
+     monitor. */
+  font-size: 16px;
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
 }
@@ -85,7 +89,10 @@ button {
 /* ---------- Layout shell ---------- */
 
 .shell {
-  max-width: 1080px;
+  /* Was 1080px: on a normal desktop monitor (1920px+) that left 40-70% of
+     the screen as empty margin on both sides, so the whole app read as
+     small relative to the window even though nothing inside it was broken. */
+  max-width: 1360px;
   margin: 0 auto;
   padding: 28px 24px 80px;
 }
