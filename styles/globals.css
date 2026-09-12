@@ -175,6 +175,7 @@ button {
   background: none;
   border: none;
   padding: 9px 20px;
+  min-height: 44px;
   font-size: 0.92rem;
   font-weight: 600;
   color: var(--ink-soft);
@@ -246,6 +247,22 @@ button {
 }
 
 /* ---------- Ledger table ---------- */
+
+/* The results table gets one column per judge, so on a tablet in portrait
+   (or with more than a handful of judges) it can get wider than the screen.
+   This lets it scroll sideways inside its own box instead of squeezing the
+   page or forcing the whole site to scroll horizontally. */
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+}
+
+.table-scroll .ledger {
+  box-shadow: none;
+  border-radius: 0;
+}
 
 .ledger {
   width: 100%;
@@ -334,6 +351,12 @@ button {
   padding: 9px 12px;
   color: var(--ink);
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  /* 16px, not the 15px body default: iOS Safari auto-zooms the page on focus
+     for any text input under 16px, which is disorienting on a tablet where a
+     judge is tapping between several fields while scoring. */
+  font-size: 16px;
+  /* Comfortable tap target for touch, not just the text line height. */
+  min-height: 44px;
 }
 
 .field textarea {
@@ -363,11 +386,15 @@ button {
 .btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   border: none;
   background: var(--blue-600);
   color: #ffffff;
   padding: 9px 18px;
+  /* Apple/Material both recommend >=44px touch targets; the padding above
+     alone lands under that once you count the text line height. */
+  min-height: 44px;
   border-radius: var(--radius-sm);
   font-weight: 600;
   font-size: 0.88rem;
@@ -491,9 +518,53 @@ button {
   gap: 14px;
 }
 
+/* The default browser range slider has a thumb around 12-16px, hard to grab
+   precisely with a finger on a tablet. This gives it a much bigger thumb and
+   a tall tap area (the row itself stays 44px+ tall) while keeping the same
+   thin visual track, in both WebKit (iPad/Android Chrome) and Firefox. */
 .score-slider-row input[type="range"] {
   flex: 1;
   accent-color: var(--blue-600);
+  height: 44px;
+  padding: 0;
+  margin: 0;
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  touch-action: pan-y;
+}
+
+.score-slider-row input[type="range"]::-webkit-slider-runnable-track {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--rule-strong);
+}
+
+.score-slider-row input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 30px;
+  height: 30px;
+  margin-top: -11px;
+  border-radius: 50%;
+  background: var(--blue-600);
+  border: 3px solid #ffffff;
+  box-shadow: 0 2px 6px rgba(15, 44, 115, 0.35);
+}
+
+.score-slider-row input[type="range"]::-moz-range-track {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--rule-strong);
+}
+
+.score-slider-row input[type="range"]::-moz-range-thumb {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--blue-600);
+  border: 3px solid #ffffff;
+  box-shadow: 0 2px 6px rgba(15, 44, 115, 0.35);
 }
 
 .score-num {
