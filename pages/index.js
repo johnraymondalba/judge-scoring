@@ -1,37 +1,74 @@
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Head from "next/head";
 import AdminPanel from "../components/AdminPanel";
 import JudgePanel from "../components/JudgePanel";
 import ResultsPanel from "../components/ResultsPanel";
-import PasswordGate from "../components/PasswordGate";
+import RoleChooser from "../components/RoleChooser";
+import LoginForm from "../components/LoginForm";
 
-const TABS = [
-  { id: "judge", label: "Judge" },
+const ADMIN_TABS = [
+  { id: "admin", label: "Setup" },
   { id: "results", label: "Results" },
-  { id: "admin", label: "Admin" },
 ];
 
 export default function Home() {
   const [state, setState] = useState(null);
-  const [tab, setTab] = useState("judge");
+  const [session, setSession] = useState(null);
+  const [warnings, setWarnings] = useState(null);
+  const [authView, setAuthView] = useState("choose"); // choose | judge | admin
+  const [tab, setTab] = useState("admin");
+  const [booted, setBooted] = useState(false);
   const [error, setError] = useState(null);
 
-  const load = useCallback(async () => {
+  const loadState = useCallback(async () => {
     try {
       const res = await fetch("/api/state");
-      const data = await res.json();
-      setState(data);
+      setState(await res.json());
       setError(null);
     } catch (e) {
       setError("Could not reach the server. Retrying…");
     }
   }, []);
 
+  const loadSession = useCallback(async () => {
+    try {
+      const res = await fetch("/api/auth/session");
+      const data = await res.json();
+      setSession(data.session);
+      setWarnings(data.warnings || null);
+      return data.session;
+    } catch (e) {
+      return null;
+    }
+  }, []);
+
   useEffect(() => {
-    load();
-    const interval = setInterval(load, 6000);
+    (async () => {
+      await Promise.all([loadSession(), loadState()]);
+      setBooted(true);
+    })();
+  }, [loadSession, loadState]);
+
+  // Only poll once somebody is signed in — there is nothing live to watch on
+  // the sign-in screen, and it keeps idle phones off the network.
+  useEffect(() => {
+    if (!session) return undefined;
+    const interval = setInterval(loadState, 6000);
     return () => clearInterval(interval);
-  }, [load]);
+  }, [session, loadState]);
+
+  async function handleSignedIn(newSession) {
+    setSession(newSession);
+    await Promise.all([loadSession(), loadState()]);
+  }
+
+  async function signOut() {
+    await fetch("/api/auth/logout", { method: "POST" });
+    setSession(null);
+    setWarnings(null);
+    setAuthView("choose");
+    await loadState();
+  }
 
   async function patchState(patch) {
     const res = await fetch("/api/state", {
@@ -40,85 +77,118 @@ export default function Home() {
       body: JSON.stringify(patch),
     });
     const data = await res.json();
+    if (!res.ok) {
+      if (res.status === 401) await signOut();
+      throw new Error(data.error || "Could not save changes.");
+    }
     setState(data);
+    return data;
   }
 
-  async function submitScore(judgeId, participantId, scores) {
+  async function submitScore(participantId, scores) {
     const res = await fetch("/api/scores", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ judgeId, participantId, scores }),
+      body: JSON.stringify({ participantId, scores }),
     });
     const data = await res.json();
-    setState((s) => ({ ...s, scores: data.scores }));
+    if (!res.ok) {
+      if (res.status === 401) await signOut();
+      throw new Error(data.error || "Could not save that score.");
+    }
+    setState((s) => ({ ...s, scores: { ...s.scores, [data.key]: data.entry } }));
   }
+
+  const eventName = state ? state.eventName : "Judging Scoresheet";
+  const isAdmin = session && session.role === "admin";
+  const isJudge = session && session.role === "judge";
 
   return (
     <>
       <Head>
-        <title>{state ? state.eventName : "Judging Scoresheet"}</title>
+        <title>{eventName}</title>
       </Head>
       <div className="shell">
         <header className="masthead">
           <div>
-            <h1>{state ? state.eventName : "Loading…"}</h1>
+            <h1>{booted ? eventName : "Loading…"}</h1>
             <div className="tag">Live scoring &amp; automatic tally</div>
           </div>
-          <div className="masthead-meta">
-            <div>
-              <span className={`dot ${state?._fallback ? "warn" : ""}`} />
-              {state?._fallback ? "local storage (dev mode)" : "shared live database"}
+          {session && (
+            <div className="masthead-meta">
+              <div className="who">
+                <span className="dot" />
+                {isJudge ? `Judging as ${session.judgeName}` : "Organizer"}
+              </div>
+              <button className="btn-icon" onClick={signOut}>
+                Sign out
+              </button>
             </div>
-            <div>{state ? `${state.participants.length} participants · ${state.judges.length} judges` : ""}</div>
-          </div>
+          )}
         </header>
 
         {error && <div className="banner warn">{error}</div>}
 
-        {state?._fallback && (
+        {/* Storage and configuration warnings are organizer business — judges
+            shouldn't be shown deployment errata mid-event. */}
+        {isAdmin && state && state._fallback && (
           <div className="banner warn">
             Running on local file storage — scores won&apos;t sync between different devices.
-            Add the Vercel KV integration in your Vercel project settings so all judges share one
-            live scoresheet. See the README for setup steps.
+            Add a Redis database in your Vercel project settings so every judge shares one live
+            scoresheet. See the README for setup steps.
+          </div>
+        )}
+        {isAdmin && warnings && (warnings.defaultAdminPassword || warnings.defaultSessionSecret) && (
+          <div className="banner warn">
+            This deployment is still using the built-in development credentials. Set{" "}
+            {warnings.defaultAdminPassword && <code>ADMIN_PASSWORD</code>}
+            {warnings.defaultAdminPassword && warnings.defaultSessionSecret && " and "}
+            {warnings.defaultSessionSecret && <code>SESSION_SECRET</code>} as environment variables
+            before the real event.
           </div>
         )}
 
-        <nav className="tabs">
-          {TABS.map((t) => (
-            <button
-              key={t.id}
-              className={`tab ${tab === t.id ? "active" : ""}`}
-              onClick={() => setTab(t.id)}
-            >
-              {t.label}
-            </button>
-          ))}
-        </nav>
+        {!booted && <div className="empty">Loading scoresheet…</div>}
 
-        {!state && <div className="empty">Loading scoresheet…</div>}
-
-        {state && tab === "admin" && (
-          <PasswordGate
-            storageKey="judging_admin_unlocked"
-            title="Admin access"
-            hint="This tab manages criteria, participants and judges. Enter the admin password to continue."
-          >
-            <AdminPanel state={state} onPatch={patchState} />
-          </PasswordGate>
+        {booted && !session && authView === "choose" && (
+          <RoleChooser eventName={eventName} onChoose={setAuthView} />
         )}
-        {state && tab === "judge" && <JudgePanel state={state} onSubmitScore={submitScore} />}
-        {state && tab === "results" && (
-          <PasswordGate
-            storageKey="judging_results_unlocked"
-            title="Results access"
-            hint="Live scores and rankings are password-protected. Enter the password to view them."
-          >
-            <ResultsPanel state={state} />
-          </PasswordGate>
+
+        {booted && !session && authView !== "choose" && (
+          <LoginForm
+            role={authView}
+            judges={state ? state.judges : []}
+            onBack={() => setAuthView("choose")}
+            onSignedIn={handleSignedIn}
+          />
+        )}
+
+        {booted && state && isJudge && (
+          <JudgePanel state={state} judge={session} onSubmitScore={submitScore} />
+        )}
+
+        {booted && state && isAdmin && (
+          <>
+            <nav className="tabs">
+              {ADMIN_TABS.map((t) => (
+                <button
+                  key={t.id}
+                  className={`tab ${tab === t.id ? "active" : ""}`}
+                  onClick={() => setTab(t.id)}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </nav>
+            {tab === "admin" && <AdminPanel state={state} onPatch={patchState} />}
+            {tab === "results" && <ResultsPanel state={state} />}
+          </>
         )}
 
         <div className="footer-note">
-          scores refresh automatically every 6s · export results as CSV from the Results tab
+          {session
+            ? "scores refresh automatically every 6s"
+            : "sign in to continue"}
         </div>
       </div>
     </>

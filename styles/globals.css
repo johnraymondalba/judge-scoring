@@ -743,3 +743,360 @@ button {
     padding: 9px 8px;
   }
 }
+
+/* ---------- Role chooser ---------- */
+
+.chooser {
+  padding: 28px 0 8px;
+}
+
+.chooser-head {
+  text-align: center;
+  margin-bottom: 26px;
+}
+
+.chooser-head h2 {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--blue-900);
+  margin: 0 0 6px;
+}
+
+.chooser-head p.hint {
+  margin: 0;
+  color: var(--ink-soft);
+}
+
+.chooser-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.role-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  text-align: left;
+  padding: 26px 24px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.role-card:hover,
+.role-card:focus-visible {
+  transform: translateY(-2px);
+  border-color: var(--blue-200);
+  box-shadow: var(--shadow-pop);
+}
+
+.role-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--blue-50);
+  color: var(--blue-600);
+  margin-bottom: 6px;
+}
+
+.role-icon.alt {
+  background: var(--yellow-50);
+  color: var(--yellow-700);
+}
+
+.role-title {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--blue-900);
+}
+
+.role-sub {
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+  line-height: 1.5;
+}
+
+.role-go {
+  margin-top: 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--blue-600);
+}
+
+/* ---------- Sign-in card ---------- */
+
+.lock-card {
+  max-width: 400px;
+}
+
+.lock-card .field {
+  text-align: left;
+}
+
+.btn-full {
+  width: 100%;
+  justify-content: center;
+}
+
+.btn-back {
+  margin-top: 16px;
+  width: 100%;
+  justify-content: center;
+  gap: 6px;
+}
+
+.pin-input {
+  letter-spacing: 0.4em;
+  font-weight: 700;
+  text-align: center;
+}
+
+.pin-input.small {
+  letter-spacing: 0.16em;
+  width: 92px;
+  padding: 6px 8px;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  text-align: center;
+  font-weight: 700;
+}
+
+.pin-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.masthead-meta .who {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: var(--blue-900);
+}
+
+/* ---------- Judge progress ---------- */
+
+.progress-block {
+  margin-bottom: 18px;
+}
+
+.progress-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+  margin-bottom: 6px;
+}
+
+.progress-pct {
+  font-family: var(--font-display);
+  color: var(--blue-700);
+}
+
+.progress-track {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--blue-100);
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--blue-500), var(--blue-700));
+  transition: width 0.3s ease;
+}
+
+/* ---------- Scoring inputs ---------- */
+
+.score-num-input {
+  width: 74px;
+  padding: 8px 6px;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--blue-900);
+  text-align: center;
+}
+
+.score-num-input:focus {
+  outline: none;
+  border-color: var(--blue-500);
+  box-shadow: 0 0 0 3px var(--blue-100);
+}
+
+/* An unscored criterion is visibly incomplete, so a judge can never submit a
+   default value by accident. */
+.criteria-card.unscored {
+  border-left: 3px solid var(--yellow-400);
+}
+
+.criteria-card.unscored .score-num-input {
+  border-color: var(--yellow-400);
+  background: var(--yellow-50);
+}
+
+.score-slider-row input[type="range"].untouched {
+  opacity: 0.45;
+}
+
+.needs-score {
+  margin-top: 8px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--yellow-700);
+}
+
+.submit-row {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.chip {
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.chip.current {
+  border-color: var(--blue-500);
+  background: var(--blue-500);
+  color: var(--white);
+}
+
+.pill.danger {
+  background: var(--danger-bg);
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+.banner.info {
+  background: var(--blue-50);
+  border-color: var(--blue-200);
+  color: var(--blue-900);
+}
+
+/* ---------- Admin inputs ---------- */
+
+/* Table cells used to be borderless, which made them look like plain text
+   rather than something you could edit. */
+.cell-input {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--ink);
+}
+
+.cell-input:hover {
+  border-color: var(--rule);
+  background: var(--blue-50);
+}
+
+.cell-input:focus {
+  outline: none;
+  border-color: var(--blue-500);
+  background: var(--surface);
+  box-shadow: 0 0 0 3px var(--blue-100);
+}
+
+.inline-title-input {
+  flex: 1;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--blue-900);
+  padding: 4px 6px;
+}
+
+.inline-title-input:hover {
+  border-color: var(--rule);
+}
+
+.inline-title-input:focus {
+  outline: none;
+  border-color: var(--blue-500);
+  background: var(--surface);
+}
+
+.weight-input {
+  width: 64px;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-sm);
+  padding: 6px;
+  font-weight: 600;
+  text-align: right;
+}
+
+.criterion-desc {
+  width: 100%;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
+  padding: 8px;
+  font-size: 0.88rem;
+  color: var(--ink);
+  font-family: var(--font-body);
+}
+
+.criterion-desc:focus {
+  outline: none;
+  border-color: var(--blue-500);
+  box-shadow: 0 0 0 3px var(--blue-100);
+}
+
+.btn-icon.danger {
+  color: var(--danger);
+}
+
+.btn-icon.danger:hover {
+  background: var(--danger-bg);
+  border-color: var(--danger);
+}
+
+@media (max-width: 640px) {
+  .chooser-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .role-card {
+    padding: 22px 20px;
+  }
+
+  /* Big enough to hit with a thumb while standing at a judging table. */
+  .score-num-input {
+    width: 84px;
+    padding: 12px 6px;
+    font-size: 1.1rem;
+  }
+
+  .submit-row .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

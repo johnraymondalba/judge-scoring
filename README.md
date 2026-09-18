@@ -1,22 +1,45 @@
 # Food Technology Judging Scoresheet
 
-A live scoring and tallying webapp for a judged competition:
+A live scoring and tallying webapp for a judged competition.
 
-- **Admin tab** *(password-protected)* — set the criteria (name, description, weight %), and
-  add/edit/remove participants and judges.
-- **Judge tab** — each judge picks their own name, picks a participant, and sets a score
-  (0–100) per criterion. The weighted total is calculated live as they move the sliders.
-- **Results tab** *(password-protected)* — a live leaderboard with each judge's weighted score
-  per participant and the overall average, ranked automatically. Click a row to see the
-  per-criterion breakdown. Exportable as CSV.
+Opening the app asks who you are — **Judge** or **Organizer** — and each role signs in
+before it can do anything.
 
-The Admin and Results tabs are gated behind a shared password: **`admin123`**. Once entered,
-a tab stays unlocked for that browser tab until it's closed (or you click "Lock this tab").
-This is a simple client-side gate meant to keep casual viewers out — it is not secure against
-someone reading the page source, so don't rely on it to protect sensitive data.
+- **Judge** — signs in with their name plus a 4–6 digit PIN that the organizer issued them.
+  They then score each participant (0–100 per criterion, by slider or by typing the number),
+  and the weighted total updates live. A progress bar tracks how many participants they have
+  left, and saving a score moves them straight on to the next unscored one.
+- **Organizer** — signs in with the organizer password. Sets the event name, the criteria
+  (name, description, weight %), the participants, and the judges and their PINs. Also sees
+  the live leaderboard: each judge's weighted score per participant and the overall average,
+  ranked automatically, exportable as CSV.
 
-Scores refresh automatically every 6 seconds so everyone (admin, judges, and anyone watching
-the results screen) sees the same live tally.
+Scores refresh automatically every 6 seconds, so everyone sees the same live tally.
+
+## Accounts and access
+
+Judges' PINs are stored only as salted scrypt hashes. A PIN cannot be read back out of the
+database or the Admin tab — it can only be replaced — so write each PIN down when you create
+it and hand it to that judge privately.
+
+Signing in sets an httpOnly, signed session cookie that lasts 12 hours. The score API takes
+the judge's identity from that cookie rather than from the browser's request, so one judge
+cannot submit or overwrite scores under another judge's name.
+
+**The live leaderboard is organizer-only.** A signed-in judge can see only their own
+submitted scores, and a signed-out visitor sees none at all — judges cannot check the
+standings while judging is still in progress.
+
+### Environment variables
+
+| Variable | Purpose | Development fallback |
+| --- | --- | --- |
+| `ADMIN_PASSWORD` | The organizer sign-in password | `admin123` |
+| `SESSION_SECRET` | HMAC key that signs the session cookie | a fixed dev string |
+
+Both have insecure fallbacks so `npm run dev` works with no setup. **Set both for real
+events** — the app shows organizers a warning banner while the fallbacks are in use. Anyone
+who knows the default session secret can forge a session cookie for any role.
 
 ## How scoring is calculated
 
@@ -29,6 +52,10 @@ weighted total = Σ (raw score × weight / 100)   for each criterion
 
 A participant's final average is the mean of the weighted totals from every judge who has
 scored them so far.
+
+Every criterion must be given an explicit score before a judge can submit. Sliders start
+blank rather than at a midpoint, so an untouched criterion can never be mistaken for a
+deliberate score.
 
 ## Running locally
 
@@ -54,37 +81,48 @@ instead of the local-file fallback. The easiest option is Vercel's free KV store
    tier is enough for this use case). Connect it to your project.
 4. This automatically adds `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` (or, on
    older accounts, `KV_REST_API_URL` / `KV_REST_API_TOKEN`) as environment variables on
-   your project. Redeploy — Vercel usually triggers this automatically after connecting
-   storage, otherwise trigger a redeploy from the Deployments tab.
-5. Once redeployed, the banner in the app that says "local storage (dev mode)" will change
-   to "shared live database" — that confirms every judge is now writing to the same
-   scoresheet no matter what device they use.
+   your project.
+5. In **Settings → Environment Variables**, also add your own `ADMIN_PASSWORD` and a long
+   random `SESSION_SECRET`.
+6. Redeploy. The banner that says "local storage (dev mode)" disappears once every judge is
+   writing to the same scoresheet, and the default-credentials warning disappears once both
+   variables above are set.
 
-Share the deployed URL with your judges and admin. Everyone uses the same link; the tabs
-(Judge / Results / Admin) are just views into the same shared data, so there's no login
-system — treat the Admin tab as something you only share with organizers.
+Share the deployed URL with everyone — judges and organizers use the same link and pick
+their role on the first screen.
+
+## Concurrency
+
+Scores live in their own Redis hash, one field per judge-and-participant pair, so submitting
+a score is a single atomic write. Two judges tapping Submit at the same instant can no longer
+overwrite each other. The local-file fallback gets the same guarantee from an in-process
+write queue.
 
 ## Project structure
 
 ```
 pages/
-  index.js         main page: tabs + polling
-  api/state.js      GET full state / PATCH criteria, participants, judges, event name
-  api/scores.js     POST a judge's score for a participant / DELETE to clear one
+  index.js           role chooser, sign-in routing, polling
+  api/state.js       GET config (+ scores the caller is allowed to see) / PATCH setup (organizer only)
+  api/scores.js      POST a score for a participant / DELETE to clear one
+  api/auth/login.js  judge PIN and organizer password sign-in
+  api/auth/logout.js clears the session cookie
+  api/auth/session.js reports who is currently signed in
 components/
-  AdminPanel.js
+  RoleChooser.js     the "Judge or Organizer" landing screen
+  LoginForm.js       judge PIN and organizer password forms
+  AdminPanel.js      event setup, including judge PIN management
   JudgePanel.js
   ResultsPanel.js
-  PasswordGate.js    password gate wrapping the Admin and Results tabs
 lib/
-  db.js             storage layer (Vercel KV in production, JSON file fallback locally)
+  db.js              storage layer (Redis in production, JSON file fallback locally)
+  auth.js            PIN hashing, session cookie signing and verification
   scoring.js         weighted-score and leaderboard calculations
 styles/globals.css   visual design
 ```
 
 ## Customizing
 
-- Edit the default criteria in `lib/db.js` (`DEFAULT_STATE.criteria`) — this only matters
+- Edit the default criteria in `lib/db.js` (`DEFAULT_CONFIG.criteria`) — this only matters
   for a brand-new database; once the app is running, use the Admin tab instead.
-- Nothing else needs to change to add more judges or participants — that's all done from
-  the Admin tab at runtime.
+- Adding judges, participants and PINs is all done from the Admin tab at runtime.

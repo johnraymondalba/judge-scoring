@@ -1,30 +1,104 @@
-import { getState, setState, usingFallbackStorage } from "../../lib/db";
+import { getState, patchConfig, stripSecrets, usingFallbackStorage } from "../../lib/db";
+import { hashPin, isValidPinFormat, readSession } from "../../lib/auth";
+
+/**
+ * Scores are organizer-only. A signed-in judge gets back just their own
+ * entries (so their tab can show what they've already submitted), and a
+ * signed-out visitor gets none at all — that is what keeps the live
+ * leaderboard from leaking to judges mid-event.
+ */
+function visibleScores(allScores, session) {
+  if (!session) return {};
+  if (session.role === "admin") return allScores;
+  if (session.role === "judge") {
+    const mine = {};
+    Object.keys(allScores || {}).forEach((key) => {
+      if (key.startsWith(`${session.judgeId}::`)) mine[key] = allScores[key];
+    });
+    return mine;
+  }
+  return {};
+}
+
+/**
+ * Judges arrive from the browser without their credentials (those are never
+ * sent out), so merge each incoming row onto the stored one to preserve the
+ * existing hash. A row may carry `pin` to set a new PIN, or `clearPin` to
+ * revoke access entirely.
+ */
+function mergeJudges(incoming, existing) {
+  const byId = new Map((existing || []).map((j) => [j.id, j]));
+
+  return incoming.map((row) => {
+    const prior = byId.get(row.id);
+    const base = {
+      id: row.id,
+      name: typeof row.name === "string" ? row.name.trim() : "",
+      pinHash: prior ? prior.pinHash : undefined,
+      pinSalt: prior ? prior.pinSalt : undefined,
+    };
+
+    if (row.clearPin) {
+      delete base.pinHash;
+      delete base.pinSalt;
+      return base;
+    }
+
+    if (row.pin) {
+      if (!isValidPinFormat(row.pin)) {
+        const err = new Error(`PIN for ${base.name || "judge"} must be 4–6 digits.`);
+        err.statusCode = 400;
+        throw err;
+      }
+      const { pinHash, pinSalt } = hashPin(row.pin);
+      return { ...base, pinHash, pinSalt };
+    }
+
+    return base;
+  });
+}
 
 export default async function handler(req, res) {
   try {
+    const session = readSession(req);
+
     if (req.method === "GET") {
       const state = await getState();
-      return res.status(200).json({ ...state, _fallback: usingFallbackStorage() });
+      const publicState = stripSecrets(state);
+      return res.status(200).json({
+        ...publicState,
+        scores: visibleScores(state.scores, session),
+        _fallback: usingFallbackStorage(),
+      });
     }
 
     if (req.method === "PATCH") {
+      if (!session || session.role !== "admin") {
+        return res.status(401).json({ error: "Organizer sign-in required." });
+      }
+
       const state = await getState();
       const body = req.body || {};
-      const next = { ...state };
+      const patch = {};
 
-      if (Array.isArray(body.criteria)) next.criteria = body.criteria;
-      if (Array.isArray(body.participants)) next.participants = body.participants;
-      if (Array.isArray(body.judges)) next.judges = body.judges;
-      if (typeof body.eventName === "string") next.eventName = body.eventName;
+      if (Array.isArray(body.criteria)) patch.criteria = body.criteria;
+      if (Array.isArray(body.participants)) patch.participants = body.participants;
+      if (Array.isArray(body.judges)) patch.judges = mergeJudges(body.judges, state.judges);
+      if (typeof body.eventName === "string") patch.eventName = body.eventName;
 
-      await setState(next);
-      return res.status(200).json({ ...next, _fallback: usingFallbackStorage() });
+      const next = await patchConfig(patch);
+      return res.status(200).json({
+        ...stripSecrets(next),
+        scores: visibleScores(next.scores, session),
+        _fallback: usingFallbackStorage(),
+      });
     }
 
     res.setHeader("Allow", ["GET", "PATCH"]);
     return res.status(405).json({ error: `Method ${req.method} not allowed` });
   } catch (err) {
+    if (err.statusCode === 400) return res.status(400).json({ error: err.message });
     console.error(err);
-    return res.status(500).json({ error: "Server error", detail: String(err) });
+    return res.status(500).json({ error: "Server error" });
   }
 }
