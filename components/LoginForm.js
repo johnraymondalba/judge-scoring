@@ -1,24 +1,6 @@
 import { useState } from "react";
 
-function BackArrow() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M15 6l-6 6 6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function BackLink({ onBack }) {
-  return (
-    <div className="lock-top">
-      <button className="back-link" onClick={onBack} type="button">
-        <BackArrow /> Choose a different role
-      </button>
-    </div>
-  );
-}
-
-export default function LoginForm({ role, judges, onBack, onSignedIn }) {
+export default function LoginForm({ role, judges, onSignedIn }) {
   const [judgeId, setJudgeId] = useState("");
   const [pin, setPin] = useState("");
   const [password, setPassword] = useState("");
@@ -57,7 +39,6 @@ export default function LoginForm({ role, judges, onBack, onSignedIn }) {
     return (
       <div className="lock-wrap">
         <div className="lock-card">
-          <BackLink onBack={onBack} />
           <h2>No judges set up yet</h2>
           <p className="hint">
             The organizer needs to add you as a judge and give you a PIN before you can sign in.
@@ -70,7 +51,6 @@ export default function LoginForm({ role, judges, onBack, onSignedIn }) {
   return (
     <div className="lock-wrap">
       <div className="lock-card">
-        <BackLink onBack={onBack} />
         <h2>{isJudge ? "Judge sign-in" : "Organizer sign-in"}</h2>
         <p className="hint">
           {isJudge

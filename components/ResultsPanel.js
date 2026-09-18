@@ -1,4 +1,4 @@
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useMemo } from "react";
 import { buildLeaderboard, weightedTotal } from "../lib/scoring";
 
 function toCsv(state, leaderboard) {
@@ -34,10 +34,9 @@ function toCsv(state, leaderboard) {
     .join("\n");
 }
 
-export default function ResultsPanel({ state }) {
+export default function ResultsPanel({ state, expanded, onExpandedChange }) {
   const { judges, participants, criteria, scores } = state;
   const leaderboard = useMemo(() => buildLeaderboard(state), [state]);
-  const [expanded, setExpanded] = useState(null);
 
   function downloadCsv() {
     const csv = toCsv(state, leaderboard);
@@ -88,7 +87,7 @@ export default function ResultsPanel({ state }) {
               <tr
                 className={i === 0 && row.average !== null ? "rank-1" : ""}
                 onClick={() =>
-                  setExpanded(expanded === row.participant.id ? null : row.participant.id)
+                  onExpandedChange(expanded === row.participant.id ? null : row.participant.id)
                 }
                 style={{ cursor: "pointer" }}
               >

@@ -57,10 +57,14 @@ function CriterionRow({ criterion, value, onChange }) {
   );
 }
 
-export default function JudgePanel({ state, judge, onSubmitScore }) {
+export default function JudgePanel({
+  state,
+  judge,
+  onSubmitScore,
+  participantId,
+  onParticipantChange,
+}) {
   const { participants, criteria, scores } = state;
-
-  const [participantId, setParticipantId] = useState("");
   const [draftScores, setDraftScores] = useState(() => blankDraft(criteria));
   const [status, setStatus] = useState(null); // { kind: "ok" | "error", text }
   const [busy, setBusy] = useState(false);
@@ -135,7 +139,7 @@ export default function JudgePanel({ state, judge, onSubmitScore }) {
       await onSubmitScore(participantId, draftScores);
       const next = nextUnscoredAfter(participantId);
       if (next) {
-        setParticipantId(next);
+        onParticipantChange(next);
         setStatus({ kind: "ok", text: "Score saved. Moved on to the next participant." });
         if (formRef.current) {
           formRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -184,7 +188,7 @@ export default function JudgePanel({ state, judge, onSubmitScore }) {
         <select
           id="participant-pick"
           value={participantId}
-          onChange={(e) => setParticipantId(e.target.value)}
+          onChange={(e) => onParticipantChange(e.target.value)}
         >
           <option value="">Select participant…</option>
           {participants.map((p) => (
@@ -205,7 +209,7 @@ export default function JudgePanel({ state, judge, onSubmitScore }) {
             className={`chip ${scoredIds.has(p.id) ? "done" : ""} ${
               p.id === participantId ? "current" : ""
             }`}
-            onClick={() => setParticipantId(p.id)}
+            onClick={() => onParticipantChange(p.id)}
           >
             {p.name} {scoredIds.has(p.id) ? "✓" : "· pending"}
           </button>

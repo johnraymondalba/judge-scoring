@@ -850,33 +850,6 @@ button {
   justify-content: center;
 }
 
-.lock-top {
-  display: flex;
-  justify-content: flex-start;
-  margin-bottom: 16px;
-}
-
-.back-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 7px 12px 7px 8px;
-  border-radius: var(--radius-sm);
-  border: 1px solid transparent;
-  background: transparent;
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--ink-soft);
-  cursor: pointer;
-  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
-}
-
-.back-link:hover,
-.back-link:focus-visible {
-  color: var(--blue-700);
-  background: var(--blue-50);
-  border-color: var(--blue-200);
-}
 
 .pin-input {
   letter-spacing: 0.4em;
@@ -1117,6 +1090,100 @@ button {
   }
 
   .submit-row .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* ---------- Shared back bar ---------- */
+
+/* One back control, always directly under the masthead, so it never moves
+   between screens — the thing that matters most on a judge's phone. */
+.back-bar {
+  display: flex;
+  margin: -6px 0 18px;
+}
+
+.back-bar-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 14px 9px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--rule);
+  background: var(--surface);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+
+.back-bar-btn:hover,
+.back-bar-btn:focus-visible {
+  color: var(--blue-700);
+  background: var(--blue-50);
+  border-color: var(--blue-200);
+}
+
+.back-bar-btn:active {
+  transform: translateY(1px);
+}
+
+/* ---------- Confirmation dialog ---------- */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(15, 44, 115, 0.38);
+}
+
+.modal-card {
+  width: 100%;
+  max-width: 400px;
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: 28px 26px 22px;
+  box-shadow: var(--shadow-pop);
+}
+
+.modal-card h2 {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--blue-900);
+  margin: 0 0 8px;
+}
+
+.modal-card p {
+  margin: 0 0 20px;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+@media (max-width: 640px) {
+  .back-bar-btn {
+    padding: 11px 16px 11px 12px;
+  }
+
+  .modal-actions {
+    flex-direction: column-reverse;
+  }
+
+  .modal-actions .btn {
     width: 100%;
     justify-content: center;
   }

@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Head from "next/head";
 import AdminPanel from "../components/AdminPanel";
 import JudgePanel from "../components/JudgePanel";
 import ResultsPanel from "../components/ResultsPanel";
 import RoleChooser from "../components/RoleChooser";
 import LoginForm from "../components/LoginForm";
+import BackBar from "../components/BackBar";
+import ConfirmDialog from "../components/ConfirmDialog";
 
 const ADMIN_TABS = [
   { id: "admin", label: "Setup" },
@@ -17,6 +19,9 @@ export default function Home() {
   const [warnings, setWarnings] = useState(null);
   const [authView, setAuthView] = useState("choose"); // choose | judge | admin
   const [tab, setTab] = useState("admin");
+  const [participantId, setParticipantId] = useState("");
+  const [expandedResult, setExpandedResult] = useState(null);
+  const [confirmSignOut, setConfirmSignOut] = useState(false);
   const [booted, setBooted] = useState(false);
   const [error, setError] = useState(null);
 
@@ -57,31 +62,11 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [session, loadState]);
 
-  useEffect(() => {
-    function onPopState() {
-      setAuthView("choose");
-    }
-    window.addEventListener("popstate", onPopState);
-    return () => window.removeEventListener("popstate", onPopState);
-  }, []);
-
-  function chooseRole(role) {
-    setAuthView(role);
-    window.history.pushState({ judgingAuthView: role }, "");
-  }
-
-  function backToRoleChooser() {
-    // Unwind the entry chooseRole pushed, so the browser back button doesn't
-    // need a second press to get past a screen we already left.
-    if (window.history.state && window.history.state.judgingAuthView) {
-      window.history.back();
-    } else {
-      setAuthView("choose");
-    }
-  }
-
   async function handleSignedIn(newSession) {
     setSession(newSession);
+    setParticipantId("");
+    setExpandedResult(null);
+    setTab("admin");
     await Promise.all([loadSession(), loadState()]);
   }
 
@@ -90,6 +75,9 @@ export default function Home() {
     setSession(null);
     setWarnings(null);
     setAuthView("choose");
+    setParticipantId("");
+    setExpandedResult(null);
+    setConfirmSignOut(false);
     await loadState();
   }
 
@@ -108,11 +96,11 @@ export default function Home() {
     return data;
   }
 
-  async function submitScore(participantId, scores) {
+  async function submitScore(pid, scores) {
     const res = await fetch("/api/scores", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ participantId, scores }),
+      body: JSON.stringify({ participantId: pid, scores }),
     });
     const data = await res.json();
     if (!res.ok) {
@@ -125,6 +113,67 @@ export default function Home() {
   const eventName = state ? state.eventName : "Judging Scoresheet";
   const isAdmin = session && session.role === "admin";
   const isJudge = session && session.role === "judge";
+
+  /**
+   * Back always steps up exactly one level rather than jumping to the start,
+   * so nobody loses their place by accident. Only the top level of a role
+   * leaves it, and that path is confirmed first.
+   */
+  function resolveBack() {
+    if (!session) {
+      if (authView === "choose") return null;
+      return { label: "Choose a different role", run: () => setAuthView("choose") };
+    }
+
+    if (isJudge) {
+      if (participantId) {
+        return { label: "Back to all participants", run: () => setParticipantId("") };
+      }
+      return { label: "Choose a different role", run: () => setConfirmSignOut(true) };
+    }
+
+    if (tab === "results") {
+      if (expandedResult) {
+        return { label: "Back to the results table", run: () => setExpandedResult(null) };
+      }
+      return { label: "Back to setup", run: () => setTab("admin") };
+    }
+    return { label: "Choose a different role", run: () => setConfirmSignOut(true) };
+  }
+
+  const back = resolveBack();
+  const canGoBack = Boolean(back);
+
+  // The device back button and back gesture run the same step-up logic as the
+  // back bar. A guard entry is kept on the history stack so a press can be
+  // intercepted; without it, back would leave the app entirely.
+  const backRef = useRef(null);
+  backRef.current = back;
+
+  useEffect(() => {
+    function onPopState() {
+      if (backRef.current) backRef.current.run();
+    }
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
+
+  // Re-armed after every render, so there is always exactly one guard entry
+  // whenever there is somewhere to go back to.
+  useEffect(() => {
+    if (!canGoBack) return;
+    const armed = Boolean(window.history.state && window.history.state.judgingGuard);
+    if (!armed) window.history.pushState({ judgingGuard: true }, "");
+  });
+
+  function goBack() {
+    if (!back) return;
+    const armed = Boolean(window.history.state && window.history.state.judgingGuard);
+    // Popping the guard keeps the browser's history in step with the app, and
+    // the popstate handler above performs the actual navigation.
+    if (armed) window.history.back();
+    else back.run();
+  }
 
   return (
     <>
@@ -143,12 +192,14 @@ export default function Home() {
                 <span className="dot" />
                 {isJudge ? `Judging as ${session.judgeName}` : "Organizer"}
               </div>
-              <button className="btn-icon" onClick={signOut}>
+              <button className="btn-icon" onClick={() => setConfirmSignOut(true)}>
                 Sign out
               </button>
             </div>
           )}
         </header>
+
+        <BackBar label={back ? back.label : null} onBack={goBack} />
 
         {error && <div className="banner warn">{error}</div>}
 
@@ -174,20 +225,25 @@ export default function Home() {
         {!booted && <div className="empty">Loading scoresheet…</div>}
 
         {booted && !session && authView === "choose" && (
-          <RoleChooser eventName={eventName} onChoose={chooseRole} />
+          <RoleChooser eventName={eventName} onChoose={setAuthView} />
         )}
 
         {booted && !session && authView !== "choose" && (
           <LoginForm
             role={authView}
             judges={state ? state.judges : []}
-            onBack={backToRoleChooser}
             onSignedIn={handleSignedIn}
           />
         )}
 
         {booted && state && isJudge && (
-          <JudgePanel state={state} judge={session} onSubmitScore={submitScore} />
+          <JudgePanel
+            state={state}
+            judge={session}
+            participantId={participantId}
+            onParticipantChange={setParticipantId}
+            onSubmitScore={submitScore}
+          />
         )}
 
         {booted && state && isAdmin && (
@@ -197,23 +253,43 @@ export default function Home() {
                 <button
                   key={t.id}
                   className={`tab ${tab === t.id ? "active" : ""}`}
-                  onClick={() => setTab(t.id)}
+                  onClick={() => {
+                    setTab(t.id);
+                    setExpandedResult(null);
+                  }}
                 >
                   {t.label}
                 </button>
               ))}
             </nav>
             {tab === "admin" && <AdminPanel state={state} onPatch={patchState} />}
-            {tab === "results" && <ResultsPanel state={state} />}
+            {tab === "results" && (
+              <ResultsPanel
+                state={state}
+                expanded={expandedResult}
+                onExpandedChange={setExpandedResult}
+              />
+            )}
           </>
         )}
 
         <div className="footer-note">
-          {session
-            ? "scores refresh automatically every 6s"
-            : "sign in to continue"}
+          {session ? "scores refresh automatically every 6s" : "sign in to continue"}
         </div>
       </div>
+
+      <ConfirmDialog
+        open={confirmSignOut}
+        title="Sign out?"
+        message={
+          isJudge
+            ? "You'll need your PIN from the organizer to sign back in. Every score you've already submitted stays saved."
+            : "You'll need the organizer password to sign back in. Nothing you've set up is lost."
+        }
+        confirmLabel="Sign out"
+        onConfirm={signOut}
+        onCancel={() => setConfirmSignOut(false)}
+      />
     </>
   );
 }
