@@ -287,6 +287,7 @@ export default function Home() {
             : "You'll need the organizer password to sign back in. Nothing you've set up is lost."
         }
         confirmLabel="Sign out"
+        cancelLabel="Stay here"
         onConfirm={signOut}
         onCancel={() => setConfirmSignOut(false)}
       />

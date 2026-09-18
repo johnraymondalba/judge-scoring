@@ -11,6 +11,56 @@ function blankDraft(criteria) {
   return draft;
 }
 
+function isBlank(draft, criteria) {
+  return criteria.every((c) => draft[c.id] === null || draft[c.id] === undefined);
+}
+
+// --- draft persistence -----------------------------------------------------
+//
+// A judge scores a 3-minute pitch that cannot be replayed, on their own phone,
+// while standing. A locked screen, a reclaimed tab, a pull-to-refresh or a
+// mistapped participant chip used to wipe an in-progress sheet with no warning
+// and no way back. Drafts are therefore written to localStorage on every
+// keystroke, per judge and per participant, and restored on return.
+
+function draftStorageKey(judgeId, participantId) {
+  return `judging_draft::${judgeId}::${participantId}`;
+}
+
+function readStoredDraft(key, criteria) {
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    const draft = {};
+    criteria.forEach((c) => {
+      const value = parsed[c.id];
+      draft[c.id] = typeof value === "number" && Number.isFinite(value) ? value : null;
+    });
+    return isBlank(draft, criteria) ? null : draft;
+  } catch (e) {
+    // Private browsing, blocked site data, or corrupt JSON — fall through to
+    // the submitted score. A missing draft must never break scoring.
+    return null;
+  }
+}
+
+function writeStoredDraft(key, draft) {
+  try {
+    window.localStorage.setItem(key, JSON.stringify(draft));
+  } catch (e) {
+    // Storage full or unavailable; the in-memory draft still works.
+  }
+}
+
+function clearStoredDraft(key) {
+  try {
+    window.localStorage.removeItem(key);
+  } catch (e) {
+    // ignore
+  }
+}
+
 function CriterionRow({ criterion, value, onChange }) {
   const has = value !== null && value !== undefined && value !== "";
   const labelId = `crit-${criterion.id}`;
@@ -24,6 +74,9 @@ function CriterionRow({ criterion, value, onChange }) {
       {criterion.description && <p>{criterion.description}</p>}
 
       <div className="score-slider-row">
+        {/* While unscored the thumb is hidden by `.untouched` rather than
+            parked at the midpoint, where a single accidental brush used to
+            commit a real 50 and silently clear the unscored state. */}
         <input
           type="range"
           min={0}
@@ -42,7 +95,7 @@ function CriterionRow({ criterion, value, onChange }) {
           max={100}
           value={has ? value : ""}
           placeholder="—"
-          aria-label={`${criterion.name} score out of 100`}
+          aria-labelledby={labelId}
           onChange={(e) => {
             const raw = e.target.value;
             if (raw === "") return onChange(null);
@@ -66,7 +119,7 @@ export default function JudgePanel({
 }) {
   const { participants, criteria, scores } = state;
   const [draftScores, setDraftScores] = useState(() => blankDraft(criteria));
-  const [status, setStatus] = useState(null); // { kind: "ok" | "error", text }
+  const [status, setStatus] = useState(null); // { kind: "ok" | "error" | "info", text }
   const [busy, setBusy] = useState(false);
   const formRef = useRef(null);
 
@@ -81,12 +134,21 @@ export default function JudgePanel({
     return set;
   }, [participants, scores, judge.judgeId]);
 
-  // Load the saved score when switching participants, otherwise start blank.
+  // Restore an unsent draft first, then a submitted score, then blank.
   useEffect(() => {
     if (!participantId) {
       setDraftScores(blankDraft(criteria));
+      setStatus(null);
       return;
     }
+
+    const stored = readStoredDraft(draftStorageKey(judge.judgeId, participantId), criteria);
+    if (stored) {
+      setDraftScores(stored);
+      setStatus({ kind: "info", text: "Restored your unsent scores for this participant." });
+      return;
+    }
+
     const saved = scores[scoreKey(judge.judgeId, participantId)];
     if (saved) {
       const filled = {};
@@ -100,6 +162,14 @@ export default function JudgePanel({
     setStatus(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [participantId]);
+
+  // Persist on every change, so nothing is lost between this render and the next.
+  useEffect(() => {
+    if (!participantId) return;
+    const key = draftStorageKey(judge.judgeId, participantId);
+    if (isBlank(draftScores, criteria)) clearStoredDraft(key);
+    else writeStoredDraft(key, draftScores);
+  }, [draftScores, participantId, judge.judgeId, criteria]);
 
   const total = useMemo(() => weightedTotal(draftScores, criteria), [draftScores, criteria]);
   const missing = criteria.filter(
@@ -137,6 +207,8 @@ export default function JudgePanel({
     setStatus(null);
     try {
       await onSubmitScore(participantId, draftScores);
+      clearStoredDraft(draftStorageKey(judge.judgeId, participantId));
+
       const next = nextUnscoredAfter(participantId);
       if (next) {
         onParticipantChange(next);
@@ -257,7 +329,12 @@ export default function JudgePanel({
               </span>
             )}
             {status && (
-              <span className={`pill ${status.kind === "ok" ? "ok" : "danger"}`} role="status">
+              <span
+                className={`pill ${
+                  status.kind === "ok" ? "ok" : status.kind === "error" ? "danger" : ""
+                }`}
+                role="status"
+              >
                 {status.text}
               </span>
             )}

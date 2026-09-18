@@ -136,7 +136,7 @@ button {
 
 .masthead .tag {
   font-size: 0.92rem;
-  color: rgba(255, 255, 255, 0.85);
+  color: rgba(255, 255, 255, 0.95);
   margin-top: 6px;
   position: relative;
 }
@@ -145,7 +145,7 @@ button {
   font-family: var(--font-body);
   font-weight: 600;
   font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.92);
+  color: #ffffff;
   text-align: right;
   line-height: 1.7;
   position: relative;
@@ -466,8 +466,8 @@ button {
 }
 
 .btn-icon:hover {
-  color: var(--danger);
-  background: var(--danger-bg);
+  color: var(--blue-700);
+  background: var(--blue-50);
 }
 
 /* ---------- Cards / panels ---------- */
@@ -875,12 +875,31 @@ button {
   flex-wrap: wrap;
 }
 
+/* These sit on the blue-700 -> blue-500 gradient. --blue-900 measured about
+   2.1:1 there and the Sign out button about 1.2:1 — effectively invisible.
+   "Judging as {name}" is the only confirmation a judge has that they are not
+   about to submit under a colleague's identity, so it has to be legible. */
 .masthead-meta .who {
   display: flex;
   align-items: center;
   gap: 6px;
   font-weight: 600;
+  color: #ffffff;
+}
+
+.masthead-meta .btn-icon {
+  min-height: 44px;
+  padding: 8px 14px;
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+}
+
+.masthead-meta .btn-icon:hover,
+.masthead-meta .btn-icon:focus-visible {
   color: var(--blue-900);
+  background: #ffffff;
+  border-color: #ffffff;
 }
 
 /* ---------- Judge progress ---------- */
@@ -950,8 +969,25 @@ button {
   background: var(--yellow-50);
 }
 
-.score-slider-row input[type="range"].untouched {
-  opacity: 0.45;
+/* An unscored slider hides its thumb entirely rather than parking it at the
+   midpoint at low opacity. A parked thumb read as "50" and a single accidental
+   brush committed that 50 as a real score, silently clearing the unscored
+   state. The track stays fully visible and tappable — tapping it still sets a
+   score, which is how a judge starts. */
+.score-slider-row input[type="range"].untouched::-webkit-slider-thumb {
+  opacity: 0;
+}
+
+.score-slider-row input[type="range"].untouched::-moz-range-thumb {
+  opacity: 0;
+}
+
+.score-slider-row input[type="range"].untouched::-webkit-slider-runnable-track {
+  background: var(--yellow-200);
+}
+
+.score-slider-row input[type="range"].untouched::-moz-range-track {
+  background: var(--yellow-200);
 }
 
 .needs-score {
@@ -969,7 +1005,14 @@ button {
   flex-wrap: wrap;
 }
 
+/* This switches which participant you are scoring, so it is the one control
+   that must not be mistappable. It was ~26px tall, the smallest target in the
+   app, sitting directly in the one-handed thumb path. */
 .chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 5px 14px;
   cursor: pointer;
   transition: border-color 0.15s ease, background 0.15s ease;
 }
@@ -1187,4 +1230,11 @@ button {
     width: 100%;
     justify-content: center;
   }
+}
+
+.criteria-card .ch-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }

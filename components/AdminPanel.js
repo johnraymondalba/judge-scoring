@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { weightSum } from "../lib/scoring";
+import ConfirmDialog from "./ConfirmDialog";
 
 function uid(prefix) {
   return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
@@ -9,8 +10,33 @@ function randomPin() {
   return String(Math.floor(1000 + Math.random() * 9000));
 }
 
-/** Shared save handling so a rejected PATCH surfaces its message instead of
- *  failing silently. */
+const serialize = (value) => JSON.stringify(value);
+
+/**
+ * Editable rows seeded from the server, which adopt server changes only while
+ * the organizer has not edited them.
+ *
+ * Previously each section did `useState(state.criteria)`, which seeded once and
+ * never resynced while the 6-second poll kept updating `state` underneath. A
+ * second organizer's changes were then silently overwritten on save, and the
+ * dirty flag read true because of the poll rather than because of any edit.
+ */
+function useServerSynced(serverValue) {
+  const [rows, setRows] = useState(serverValue);
+  const syncedRef = useRef(serverValue);
+
+  useEffect(() => {
+    if (serialize(serverValue) === serialize(syncedRef.current)) return;
+    setRows((current) =>
+      serialize(current) === serialize(syncedRef.current) ? serverValue : current
+    );
+    syncedRef.current = serverValue;
+  }, [serverValue]);
+
+  return [rows, setRows, serialize(rows) !== serialize(serverValue)];
+}
+
+/** Shared save handling so a rejected PATCH surfaces its message. */
 function useSave(onPatch) {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -31,6 +57,12 @@ function useSave(onPatch) {
 
   return { save, error, busy };
 }
+
+const scoreCount = (scores) => Object.keys(scores || {}).length;
+const scoresForParticipant = (scores, id) =>
+  Object.keys(scores || {}).filter((k) => k.endsWith(`::${id}`)).length;
+const scoresForJudge = (scores, id) =>
+  Object.keys(scores || {}).filter((k) => k.startsWith(`${id}::`)).length;
 
 export default function AdminPanel({ state, onPatch }) {
   return (
@@ -71,10 +103,13 @@ function EventNameSection({ state, onPatch }) {
 }
 
 function CriteriaSection({ state, onPatch }) {
-  const [rows, setRows] = useState(state.criteria);
+  const [rows, setRows, dirty] = useServerSynced(state.criteria);
   const { save, error, busy } = useSave(onPatch);
-  const dirty = JSON.stringify(rows) !== JSON.stringify(state.criteria);
+  const [pendingRemove, setPendingRemove] = useState(null);
+
   const total = weightSum(rows);
+  const weightsValid = total === 100;
+  const submitted = scoreCount(state.scores);
 
   function update(id, field, value) {
     setRows((r) => r.map((c) => (c.id === id ? { ...c, [field]: value } : c)));
@@ -84,8 +119,9 @@ function CriteriaSection({ state, onPatch }) {
     setRows((r) => [...r, { id: uid("c"), name: "New criterion", description: "", weight: 0 }]);
   }
 
-  function removeRow(id) {
-    setRows((r) => r.filter((c) => c.id !== id));
+  function confirmRemove() {
+    setRows((r) => r.filter((c) => c.id !== pendingRemove.id));
+    setPendingRemove(null);
   }
 
   return (
@@ -93,8 +129,8 @@ function CriteriaSection({ state, onPatch }) {
       <div className="section-head">
         <h2>Judging criteria</h2>
         <p className="hint">Name, description and weight for each criterion.</p>
-        <span className={`pill ${total === 100 ? "ok" : "warn"}`}>
-          weights total {total}%{total !== 100 ? " — should be 100%" : ""}
+        <span className={`pill ${weightsValid ? "ok" : "warn"}`}>
+          weights total {total}%{weightsValid ? "" : " — must be 100% to save"}
         </span>
       </div>
 
@@ -108,7 +144,7 @@ function CriteriaSection({ state, onPatch }) {
               aria-label="Criterion name"
               onChange={(e) => update(c.id, "name", e.target.value)}
             />
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div className="ch-actions">
               <input
                 type="number"
                 className="weight-input"
@@ -117,7 +153,7 @@ function CriteriaSection({ state, onPatch }) {
                 onChange={(e) => update(c.id, "weight", Number(e.target.value))}
               />
               <span className="weight">%</span>
-              <button className="btn-icon danger" onClick={() => removeRow(c.id)} title="Remove">
+              <button className="btn-icon danger" onClick={() => setPendingRemove(c)}>
                 Remove
               </button>
             </div>
@@ -136,20 +172,47 @@ function CriteriaSection({ state, onPatch }) {
         <button className="btn secondary" onClick={addRow}>
           + Add criterion
         </button>
-        <button className="btn" onClick={() => save({ criteria: rows })} disabled={!dirty || busy}>
+        <button
+          className="btn"
+          onClick={() => save({ criteria: rows })}
+          disabled={!dirty || busy || !weightsValid}
+        >
           Save criteria
         </button>
       </div>
+      {!weightsValid && dirty && (
+        <div className="lock-error">
+          Weights add up to {total}%, so every &ldquo;out of 100&rdquo; total in the app would be
+          wrong. Adjust them to 100% to save.
+        </div>
+      )}
       {error && <div className="lock-error">{error}</div>}
+
+      <ConfirmDialog
+        open={Boolean(pendingRemove)}
+        title={`Remove "${pendingRemove ? pendingRemove.name : ""}"?`}
+        message={
+          submitted > 0
+            ? `${submitted} score${submitted === 1 ? " has" : "s have"} already been submitted. ` +
+              `Saving without this criterion recalculates every one of them, which can change the ` +
+              `ranking. This cannot be undone.`
+            : "No scores have been submitted yet, so nothing else is affected."
+        }
+        confirmLabel="Remove criterion"
+        cancelLabel="Keep it"
+        tone="danger"
+        onConfirm={confirmRemove}
+        onCancel={() => setPendingRemove(null)}
+      />
     </div>
   );
 }
 
 function ParticipantsSection({ state, onPatch }) {
-  const [rows, setRows] = useState(state.participants);
+  const [rows, setRows, dirty] = useServerSynced(state.participants);
   const [draft, setDraft] = useState({ name: "", team: "" });
   const { save, error, busy } = useSave(onPatch);
-  const dirty = JSON.stringify(rows) !== JSON.stringify(state.participants);
+  const [pendingRemove, setPendingRemove] = useState(null);
 
   function add() {
     if (!draft.name.trim()) return;
@@ -161,9 +224,12 @@ function ParticipantsSection({ state, onPatch }) {
     setRows((r) => r.map((p) => (p.id === id ? { ...p, [field]: value } : p)));
   }
 
-  function remove(id) {
-    setRows((r) => r.filter((p) => p.id !== id));
+  function confirmRemove() {
+    setRows((r) => r.filter((p) => p.id !== pendingRemove.id));
+    setPendingRemove(null);
   }
+
+  const affected = pendingRemove ? scoresForParticipant(state.scores, pendingRemove.id) : 0;
 
   return (
     <div className="section">
@@ -210,7 +276,7 @@ function ParticipantsSection({ state, onPatch }) {
                   />
                 </td>
                 <td>
-                  <button className="btn-icon danger" onClick={() => remove(p.id)}>
+                  <button className="btn-icon danger" onClick={() => setPendingRemove(p)}>
                     Remove
                   </button>
                 </td>
@@ -253,6 +319,23 @@ function ParticipantsSection({ state, onPatch }) {
         </button>
       </div>
       {error && <div className="lock-error">{error}</div>}
+
+      <ConfirmDialog
+        open={Boolean(pendingRemove)}
+        title={`Remove "${pendingRemove ? pendingRemove.name : ""}"?`}
+        message={
+          affected > 0
+            ? `${affected} judge${affected === 1 ? "" : "s"} already scored this participant. ` +
+              `Saving without them discards those scores and removes them from the results. ` +
+              `This cannot be undone.`
+            : "No scores have been submitted for this participant yet."
+        }
+        confirmLabel="Remove participant"
+        cancelLabel="Keep them"
+        tone="danger"
+        onConfirm={confirmRemove}
+        onCancel={() => setPendingRemove(null)}
+      />
     </div>
   );
 }
@@ -261,10 +344,10 @@ function JudgesSection({ state, onPatch }) {
   // Rows carry an optional `pin` (a new PIN to set) and `clearPin` flag. The
   // server hashes the PIN and never sends it back, so `hasPin` is all we can
   // display once it has been saved.
-  const [rows, setRows] = useState(state.judges);
+  const [rows, setRows, dirty] = useServerSynced(state.judges);
   const [draft, setDraft] = useState({ name: "", pin: randomPin() });
   const { save, error, busy } = useSave(onPatch);
-  const dirty = JSON.stringify(rows) !== JSON.stringify(state.judges);
+  const [pendingRemove, setPendingRemove] = useState(null);
 
   function add() {
     if (!draft.name.trim() || !/^\d{4,6}$/.test(draft.pin)) return;
@@ -276,8 +359,9 @@ function JudgesSection({ state, onPatch }) {
     setRows((r) => r.map((j) => (j.id === id ? { ...j, ...patch } : j)));
   }
 
-  function remove(id) {
-    setRows((r) => r.filter((j) => j.id !== id));
+  function confirmRemove() {
+    setRows((r) => r.filter((j) => j.id !== pendingRemove.id));
+    setPendingRemove(null);
   }
 
   async function onSave() {
@@ -287,6 +371,7 @@ function JudgesSection({ state, onPatch }) {
   }
 
   const addValid = draft.name.trim() && /^\d{4,6}$/.test(draft.pin);
+  const affected = pendingRemove ? scoresForJudge(state.scores, pendingRemove.id) : 0;
 
   return (
     <div className="section">
@@ -344,7 +429,6 @@ function JudgesSection({ state, onPatch }) {
                         <button
                           className="btn-icon"
                           onClick={() => update(j.id, { pin: undefined })}
-                          title="Cancel PIN change"
                         >
                           Cancel
                         </button>
@@ -364,7 +448,6 @@ function JudgesSection({ state, onPatch }) {
                           <button
                             className="btn-icon danger"
                             onClick={() => update(j.id, { clearPin: true })}
-                            title="Revoke this judge's access"
                           >
                             Revoke
                           </button>
@@ -382,7 +465,7 @@ function JudgesSection({ state, onPatch }) {
                   </div>
                 </td>
                 <td>
-                  <button className="btn-icon danger" onClick={() => remove(j.id)}>
+                  <button className="btn-icon danger" onClick={() => setPendingRemove(j)}>
                     Remove
                   </button>
                 </td>
@@ -438,6 +521,23 @@ function JudgesSection({ state, onPatch }) {
         </div>
       )}
       {error && <div className="lock-error">{error}</div>}
+
+      <ConfirmDialog
+        open={Boolean(pendingRemove)}
+        title={`Remove ${pendingRemove ? pendingRemove.name : ""}?`}
+        message={
+          affected > 0
+            ? `This judge has already scored ${affected} participant${affected === 1 ? "" : "s"}. ` +
+              `Saving without them discards those scores and recalculates every average they ` +
+              `contributed to. This cannot be undone.`
+            : "This judge has not scored anyone yet, so no scores are affected."
+        }
+        confirmLabel="Remove judge"
+        cancelLabel="Keep them"
+        tone="danger"
+        onConfirm={confirmRemove}
+        onCancel={() => setPendingRemove(null)}
+      />
     </div>
   );
 }
