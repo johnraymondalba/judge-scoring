@@ -850,11 +850,32 @@ button {
   justify-content: center;
 }
 
-.btn-back {
-  margin-top: 16px;
-  width: 100%;
-  justify-content: center;
-  gap: 6px;
+.lock-top {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 16px;
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 12px 7px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: transparent;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+
+.back-link:hover,
+.back-link:focus-visible {
+  color: var(--blue-700);
+  background: var(--blue-50);
+  border-color: var(--blue-200);
 }
 
 .pin-input {

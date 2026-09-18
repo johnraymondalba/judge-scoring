@@ -57,6 +57,29 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [session, loadState]);
 
+  useEffect(() => {
+    function onPopState() {
+      setAuthView("choose");
+    }
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
+
+  function chooseRole(role) {
+    setAuthView(role);
+    window.history.pushState({ judgingAuthView: role }, "");
+  }
+
+  function backToRoleChooser() {
+    // Unwind the entry chooseRole pushed, so the browser back button doesn't
+    // need a second press to get past a screen we already left.
+    if (window.history.state && window.history.state.judgingAuthView) {
+      window.history.back();
+    } else {
+      setAuthView("choose");
+    }
+  }
+
   async function handleSignedIn(newSession) {
     setSession(newSession);
     await Promise.all([loadSession(), loadState()]);
@@ -151,14 +174,14 @@ export default function Home() {
         {!booted && <div className="empty">Loading scoresheet…</div>}
 
         {booted && !session && authView === "choose" && (
-          <RoleChooser eventName={eventName} onChoose={setAuthView} />
+          <RoleChooser eventName={eventName} onChoose={chooseRole} />
         )}
 
         {booted && !session && authView !== "choose" && (
           <LoginForm
             role={authView}
             judges={state ? state.judges : []}
-            onBack={() => setAuthView("choose")}
+            onBack={backToRoleChooser}
             onSignedIn={handleSignedIn}
           />
         )}

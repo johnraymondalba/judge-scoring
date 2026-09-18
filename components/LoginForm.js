@@ -8,6 +8,16 @@ function BackArrow() {
   );
 }
 
+function BackLink({ onBack }) {
+  return (
+    <div className="lock-top">
+      <button className="back-link" onClick={onBack} type="button">
+        <BackArrow /> Choose a different role
+      </button>
+    </div>
+  );
+}
+
 export default function LoginForm({ role, judges, onBack, onSignedIn }) {
   const [judgeId, setJudgeId] = useState("");
   const [pin, setPin] = useState("");
@@ -47,13 +57,11 @@ export default function LoginForm({ role, judges, onBack, onSignedIn }) {
     return (
       <div className="lock-wrap">
         <div className="lock-card">
+          <BackLink onBack={onBack} />
           <h2>No judges set up yet</h2>
           <p className="hint">
             The organizer needs to add you as a judge and give you a PIN before you can sign in.
           </p>
-          <button className="btn secondary btn-back" onClick={onBack}>
-            <BackArrow /> Back
-          </button>
         </div>
       </div>
     );
@@ -62,6 +70,7 @@ export default function LoginForm({ role, judges, onBack, onSignedIn }) {
   return (
     <div className="lock-wrap">
       <div className="lock-card">
+        <BackLink onBack={onBack} />
         <h2>{isJudge ? "Judge sign-in" : "Organizer sign-in"}</h2>
         <p className="hint">
           {isJudge
@@ -135,10 +144,6 @@ export default function LoginForm({ role, judges, onBack, onSignedIn }) {
             {busy ? "Signing in…" : "Sign in"}
           </button>
         </form>
-
-        <button className="btn secondary btn-back" onClick={onBack} type="button">
-          <BackArrow /> Choose a different role
-        </button>
       </div>
     </div>
   );
