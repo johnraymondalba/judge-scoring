@@ -103,25 +103,33 @@ itself must carry the burden of not inventing precision.
 There is no institutional, school or departmental identity to carry, and no
 logo is binding.
 
-The user was offered a set of distinctive visual worlds and deliberately chose
-the category standard instead: convention, executed at full craft, with no
-irony and nothing borrowed from the directions they declined. **This is a
-standing preference, not a one-off.** Future work extends it rather than
-reopening the question.
+The user was first offered a set of distinctive visual worlds and deliberately
+chose the category standard instead: convention, executed at full craft. That
+choice shipped as an inset grouped-list "Settings app" grammar with no card
+shadows and no glass. The user has since revisited it and pinned a different
+Apple idiom directly, rather than through another roll: a card-and-glass
+material system. **This replaces the prior craft-bar commitment as the
+standing preference, not a one-off restyle.** Future work extends the
+card-and-glass system rather than reopening the question again.
 
-Two decisions follow from it and are binding:
+Two decisions are binding:
 
-- **Craft bar: Apple's system apps.** The design language is the native
-  grouped-list system those apps use, adopted honestly rather than imitated as
-  chrome: inset grouped lists, the system type ramp, adaptive system colours, a
-  single tint carrying every interactive element, hairline separators inset to
-  the text origin, and 44px minimum rows. Chosen because it is the most
-  familiar possible grammar for someone using this once, it is phone-first, its
-  accessibility conventions are the strongest available, and a list scales from
-  3 rows to 30 without redesign.
+- **Craft bar: Apple's card-and-glass apps.** The design language is Apple's
+  own card apps (Wallet, App Store, Health, Control Center): floating,
+  continuous-corner cards holding data, with a genuine two-material
+  hierarchy — translucent vibrancy confined to chrome (navigation, the bottom
+  action bar, alerts, the PIN keypad sheet), solid opaque fills on every card
+  that carries data. Depth comes from a restrained, two-layer shadow system
+  scaled to three elevation tiers, never from a single heavy drop shadow, and
+  never from glass applied to primary content. One tint still carries every
+  interactive element. See DESIGN.md for the exact tokens.
 - **Both themes, following the device.** A full light and dark theme with a
   manual override. The judge is in a dimmed auditorium and the organizer is on
-  a laptop; neither may be forced into the other's lighting.
+  a laptop; neither may be forced into the other's lighting. Glass surfaces
+  must not compromise this: chrome vibrancy adapts per theme the same way the
+  solid grounds already do, and body text stays on solid cards precisely so
+  the auditorium-dim judge keeps AA contrast regardless of what is happening
+  in the blur behind the chrome.
 
 ## Evidence on Hand
 

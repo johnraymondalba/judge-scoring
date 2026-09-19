@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-19T00:00:00Z",
+  "title": "Design System: Judging scoresheet",
+  "extensions": {
+    "colorMeta": {
+      "tint-light": { "role": "primary", "displayName": "Judging Blue", "canonical": "#0062cc" },
+      "tint-dark": { "role": "primary", "displayName": "Judging Blue (dark)", "canonical": "#4da3ff" },
+      "bg-grouped-light": { "role": "neutral", "displayName": "Grouped Ground", "canonical": "#f2f2f7" },
+      "bg-grouped-dark": { "role": "neutral", "displayName": "Grouped Ground (dark)", "canonical": "#000000" },
+      "bg-surface-light": { "role": "neutral", "displayName": "Card Surface", "canonical": "#ffffff" },
+      "bg-surface-dark": { "role": "neutral", "displayName": "Card Surface (dark)", "canonical": "#1c1c1e" },
+      "green-light": { "role": "semantic", "displayName": "Complete/Scored", "canonical": "#1c7a3e" },
+      "amber-light": { "role": "semantic", "displayName": "Provisional/Attention", "canonical": "#8a5a00" },
+      "red-light": { "role": "semantic", "displayName": "Destructive", "canonical": "#c8102e" }
+    },
+    "typographyMeta": {
+      "large-title": { "displayName": "Large Title", "purpose": "Screen headers only." },
+      "numeric": { "displayName": "Score Numeral", "purpose": "Scores, weights, totals; always tabular-nums." }
+    },
+    "shadows": [
+      { "name": "resting", "value": "0 1px 2px rgba(0,0,0,.04), 0 1px 3px rgba(0,0,0,.08)", "purpose": "Default tier for a card sitting in a list." },
+      { "name": "raised", "value": "0 2px 4px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.12)", "purpose": "Open/expanded card, focused field companion, summary card, slider thumb." },
+      { "name": "floating", "value": "0 4px 8px rgba(0,0,0,.08), 0 12px 32px rgba(0,0,0,.18)", "purpose": "PIN sheet, alerts, floating action bar — sits above chrome itself." }
+    ],
+    "motion": [
+      { "name": "ease", "value": "cubic-bezier(0.32, 0.72, 0, 1)", "purpose": "System-wide easing." },
+      { "name": "dur", "value": "220ms", "purpose": "System-wide duration; collapses to 1ms under prefers-reduced-motion." }
+    ],
+    "breakpoints": [
+      { "name": "sheet-center", "value": "520px" },
+      { "name": "desktop", "value": "760px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Filled Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Primary full-width or auto-width action; tint fill, presses to tint-press.",
+      "html": "<button class=\"ds-btn-filled\">Submit scores</button>",
+      "css": ".ds-btn-filled { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 20px; border-radius: 10px; font-size: 1.0625rem; font-weight: 600; letter-spacing: -0.01em; background: #0062cc; color: #ffffff; border: none; transition: background 220ms cubic-bezier(0.32,0.72,0,1); } .ds-btn-filled:hover { background: #0058b8; } .ds-btn-filled:active { background: #004fa6; } .ds-btn-filled:focus-visible { outline: 2px solid #0062cc; outline-offset: 2px; }"
+    },
+    {
+      "name": "Criterion Card (resting/raised)",
+      "kind": "card",
+      "refersTo": "card-content",
+      "description": "Solid card holding a criterion's name, weight pill, and score; lifts from resting to raised when expanded.",
+      "html": "<div class=\"ds-card\"><div class=\"ds-card-row\"><span class=\"ds-card-label\">Presentation clarity</span><span class=\"ds-card-pill\">20%</span><span class=\"ds-card-score\">—</span></div></div>",
+      "css": ".ds-card { background: #ffffff; border: 1px solid rgba(0,0,0,0.05); border-radius: 20px; box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 1px 3px rgba(0,0,0,.08); overflow: hidden; transition: box-shadow 220ms cubic-bezier(0.32,0.72,0,1), background 220ms cubic-bezier(0.32,0.72,0,1); } .ds-card.ds-open { box-shadow: 0 2px 4px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.12); } .ds-card-row { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 11px 16px; } .ds-card-label { flex: 1; font-size: 1.0625rem; } .ds-card-pill { padding: 3px 9px; border-radius: 980px; font-size: 0.75rem; font-weight: 600; background: rgba(120,120,128,0.12); color: #55555c; } .ds-card-score { font-family: ui-rounded, -apple-system, sans-serif; font-size: 1.75rem; font-weight: 600; color: #6a6a72; min-width: 2.6ch; text-align: right; }"
+    },
+    {
+      "name": "Glass Nav Bar",
+      "kind": "nav",
+      "refersTo": null,
+      "description": "Sticky translucent chrome; blurs content as it scrolls beneath.",
+      "html": "<div class=\"ds-nav\"><button class=\"ds-nav-back\">&lsaquo; Roles</button><span class=\"ds-nav-title\">Team Alpha</span><span class=\"ds-nav-spacer\"></span></div>",
+      "css": ".ds-nav { position: sticky; top: 0; display: flex; align-items: center; justify-content: space-between; min-height: 44px; padding: 0 16px; background: color-mix(in srgb, #f2f2f7 82%, transparent); backdrop-filter: saturate(180%) blur(24px); -webkit-backdrop-filter: saturate(180%) blur(24px); border-bottom: 1px solid transparent; } .ds-nav-back { color: #0062cc; font-size: 1.0625rem; background: none; border: none; } .ds-nav-title { font-size: 1.0625rem; font-weight: 600; letter-spacing: -0.01em; } .ds-nav-spacer { min-width: 44px; }"
+    },
+    {
+      "name": "PIN Keypad Sheet",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "Glass bottom sheet with dot indicators and a circular numeric keypad; replaces the system keyboard for judge sign-in.",
+      "html": "<div class=\"ds-sheet\"><div class=\"ds-pin-dots\"><span class=\"ds-pin-dot ds-filled\"></span><span class=\"ds-pin-dot\"></span><span class=\"ds-pin-dot\"></span><span class=\"ds-pin-dot\"></span></div><div class=\"ds-keypad\"><button class=\"ds-key\">1</button><button class=\"ds-key\">2</button><button class=\"ds-key\">3</button></div></div>",
+      "css": ".ds-sheet { width: 100%; max-width: 420px; padding: 6px 24px 22px; background: color-mix(in srgb, #ffffff 90%, transparent); backdrop-filter: saturate(180%) blur(24px); -webkit-backdrop-filter: saturate(180%) blur(24px); border: 1px solid rgba(0,0,0,0.06); border-radius: 16px 16px 0 0; box-shadow: 0 4px 8px rgba(0,0,0,.08), 0 12px 32px rgba(0,0,0,.18); } .ds-pin-dots { display: flex; justify-content: center; gap: 16px; margin: 0 0 20px; } .ds-pin-dot { width: 14px; height: 14px; border-radius: 50%; background: rgba(120,120,128,0.12); border: 1px solid rgba(0,0,0,0.05); } .ds-pin-dot.ds-filled { background: #0062cc; border-color: transparent; } .ds-keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; } .ds-key { aspect-ratio: 1; min-height: 60px; border-radius: 50%; background: rgba(120,120,128,0.12); color: #10101a; font-size: 1.625rem; font-weight: 500; border: none; transition: background 220ms cubic-bezier(0.32,0.72,0,1), transform 120ms cubic-bezier(0.32,0.72,0,1); } .ds-key:active { background: rgba(120,120,128,0.2); transform: scale(0.96); } .ds-key:focus-visible { outline: 2px solid #0062cc; outline-offset: 2px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Card-and-Glass Judging Kit",
+    "overview": "The scoresheet replaced its prior \"everything is a row\" grouped-list grammar with Apple's own card-and-glass material system — the language of Wallet, App Store, Health, and Control Center. This was a direct, user-pinned reversal of the standing preference (see PRODUCT.md, Brand Commitments), not a roll outcome, and it shipped as a genuine two-material hierarchy: floating, continuous-corner cards hold every piece of data, and a translucent vibrancy layer is reserved for chrome alone. The system declines the web category's glassmorphism pastiche — rainbow blur cards adrift on a gradient background — in favor of Apple's own restraint: one tint, three shadow tiers, and glass confined strictly to the elements that float above content rather than carrying it. A card that holds a score or a field is always solid and opaque, so text on it keeps full AA contrast regardless of what is moving in the blur above it.",
+    "keyCharacteristics": [
+      "Two materials, never mixed: solid opaque cards for data, translucent glass for chrome only.",
+      "Three-tier corner scale (20 / 16 / 10px) and three-tier shadow scale (resting / raised / floating), both keyed to a surface's role, not its size.",
+      "One tint carries every interactive element; shadows and glass never substitute for it as an affordance cue.",
+      "A custom on-screen numeric PIN keypad replaces the judge's old text-field PIN entry; no system keyboard appears during sign-in.",
+      "Both themes follow the device, with a manual override, because the judge works in a dimmed auditorium and the organizer on a lit laptop."
+    ],
+    "rules": [
+      { "name": "The One Tint Rule", "body": "`--tint` carries every interactive element and nothing decorative. Shadows and glass are depth cues, never affordance cues.", "section": "colors" },
+      { "name": "The Two Materials, Never Mixed Rule", "body": "Chrome (nav bar, floating action bar, alerts, PIN sheet) is translucent glass; content (every card holding data) is solid and opaque. A card is never blurred; a chrome surface never carries body data directly.", "section": "colors" },
+      { "name": "The Card Comes Forward Rule", "body": "The signature interaction — tapping a criterion card to unfold its control in place — lifts the card's shadow tier from resting to raised as it opens, so the expansion reads as the card advancing toward the viewer, not merely growing taller.", "section": "elevation" },
+      { "name": "The Glass Never Carries Data Rule", "body": "Nothing with a shadow tier above resting is glass except the three named chrome exceptions (nav, floating action bar, alerts, PIN sheet). Every other floating/raised surface is solid.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do keep every card that holds data (criterion, participant, standing, setup field) solid and opaque at --bg-card-*, never blurred.",
+      "Do confine backdrop-filter to the four named chrome surfaces: nav bar, floating action bar, alerts, PIN sheet.",
+      "Do scale corner radius by role — 20px page-level, 16px chrome sheet, 10px control — not by visual size alone.",
+      "Do lift a card's shadow tier (resting → raised) when it opens or gains focus, as the honest depth cue for state change.",
+      "Do keep --font-num with tabular-nums on every score, weight, and total so a changing number never reflows its row.",
+      "Do follow prefers-color-scheme with the manual data-theme override, and keep both dark-mode CSS blocks in sync since they are deliberately duplicated to let the override beat the media query without specificity tricks."
+    ],
+    "donts": [
+      "Don't apply glass to a surface that carries body text or a score — the auditorium-dim judge's AA contrast depends on staying off the blur.",
+      "Don't use a single heavy drop shadow. Every elevated surface uses the two-layer ambient+key pairing at one of the three named tiers.",
+      "Don't invent a fourth shadow tier or a nested-card radius outside 20/16/10px; the contract's earlier 14px guess never shipped and should not be revived.",
+      "Don't introduce a kicker/eyebrow label, a hard-offset neobrutalist shadow, a glyph icon font, or a system display face — none of these exist in the shipped system, and none should be canonized as a rule for future surfaces even if a future build ships one under time pressure."
+    ]
+  }
+}

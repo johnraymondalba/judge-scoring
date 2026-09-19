@@ -19,50 +19,76 @@ Constraint: the 0–100 weighted scoring model is fixed. Only the control change
 
 ## Direction contract
 
-**THESIS.** The scoresheet is a system app, not a branded web dashboard. It
-refuses the category's card deck — gradient masthead, pill chips, bespoke blue,
-drop-shadowed panels — and adopts the inset grouped-list grammar the judge's own
-phone already uses, so a faculty member who has never seen it still knows how it
-works. Everything is a row; a score is a row's value.
+**THESIS.** The scoresheet becomes Apple's card-and-glass material system —
+floating rounded surfaces with a genuine two-tier hierarchy, frosted chrome
+above solid content — replacing the grouped-list Settings grammar it shipped
+with. It refuses flat washes and hairline-only depth in favor of the layering
+Apple's own card apps (Wallet, App Store, Health, Control Center) use, where
+navigation and overlays float in vibrancy and the data itself sits on plain,
+fully opaque cards beneath.
 
-**OWN-WORLD.** Two adaptive grounds (grouped background, elevated surface) that
-invert cleanly between light and dark, driven by `prefers-color-scheme` with a
-manual override. One tint colour carries every interactive element and nothing
-decorative. System type ramp, large title down to caption, with uppercase
-footnote section headers. Hairline separators inset to the text origin, never
-full-bleed. 12px continuous corners on grouped containers, no card shadows. 44px
-minimum row height everywhere. Recognisable with all content removed by the
-inset-group rhythm and the absence of ornament.
+**OWN-WORLD.** Two material tiers, never mixed. **Chrome** — the nav bar, the
+bottom action bar, alerts, and the PIN keypad sheet — is translucent:
+`backdrop-filter: blur(20–30px) saturate(180%)` over a ~75–85%-opacity surface
+tint, a 1px hairline border at low alpha, no drop shadow (blur itself reads as
+the separation). **Content** — every card holding data: criterion cards,
+participant cards, standing cards, setup fields — is solid and opaque, never
+blurred. Corner radius scales with the card's role: 20px for a page-level
+card, 14px for a card nested inside one, 10px for a control. Three shadow
+tiers, each an ambient layer (soft, no offset) plus a key layer (small offset,
+tighter blur), so elevation reads as two honest light sources rather than one
+heavy blob: **resting** (`0 1px 2px rgba(0,0,0,.04), 0 1px 3px rgba(0,0,0,.08)`)
+for cards sitting in the list; **raised** (`0 2px 4px rgba(0,0,0,.06), 0 4px
+16px rgba(0,0,0,.12)`) for an open/expanded card or a focused field; **floating**
+(`0 4px 8px rgba(0,0,0,.08), 0 12px 32px rgba(0,0,0,.18)`) for the PIN sheet and
+alerts, the only elements allowed to sit above the chrome layer itself. One
+tint still carries every interactive element and nothing decorative;
+shadows never substitute for it as an affordance cue.
 
-**STORY.** The judge opens the link, recognises the shape of their own phone's
-settings, and picks a role without reading. They sign in, see participants as a
-list whose rows carry their own scoring state, tap one, and score five criteria
-as five rows. They believe the number they submitted is the number recorded. The
-organizer gets the same grammar at laptop density.
+**STORY.** The judge opens the link, sees the same two roles as floating cards
+on a softly tinted ground, and picks one. Signing in as a judge means tapping a
+name field, then a PIN sheet slides up in glass with a full custom numeric
+keypad — no system keyboard ever appears — dot indicators filling as digits
+land, auto-submitting on the last one. Scoring presents participants and
+criteria as solid cards under a glass nav bar that stays legible as the page
+scrolls beneath it. They believe the number they submitted is the number
+recorded. The organizer gets the same two-tier material at laptop density,
+glass confined to its own chrome, dense setup forms staying solid so nothing
+frosted sits behind a wall of fields.
 
-**FIRST VIEWPORT** (judge, scoring). Large title naming the participant, its
-position in the running order as subtitle, collapsing to an inline title on
-scroll. One grouped list of five criterion rows: name leading, weight as
-secondary text, score as a large tint-coloured value trailing; an unscored row
-shows an em-dash in tertiary grey and carries no tint at all. A second one-row
-group beneath shows the weighted total. The primary action is a full-width
-filled button pinned above the bottom safe area, with "2 of 3 participants
-scored" as a caption under it. **Signature interaction:** tapping a criterion row
-unfolds the control inside the row rather than navigating away, so the judge
-never loses their place in the list; the row's value animates only on commit,
-never during the drag. **Motion grammar:** height and opacity only, 200ms ease-out,
-fully suppressed under `prefers-reduced-motion`.
+**FIRST VIEWPORT** (judge, scoring). A glass nav bar names the participant and
+running-order position, blurring the content as it passes beneath. Below it,
+one solid, continuous-corner card per criterion — name leading, weight as a
+small pill, score trailing in large tinted numerals; an unscored card carries
+a hairline border and an em-dash, no tint, so a half-finished sheet is legible
+at a glance. A second card beneath, at the raised shadow tier, shows the
+weighted total. The primary action lives in a glass action bar floating clear
+of the bottom edge, holding the full-width filled button and the "2 of 3
+scored" caption. **Signature interaction (carried over, restyled):** tapping a
+criterion card still unfolds its control in place rather than navigating away;
+now its shadow lifts from resting to raised as it opens, so the expansion
+reads as the card coming forward, not just growing taller. **PIN keypad**
+(login): a glass sheet rises from the bottom holding six dot indicators and a
+4x3 grid of large glass digit buttons plus delete; correct-length entry
+auto-submits, wrong PIN shakes the dots once and clears. **Motion grammar:**
+height, opacity, and shadow-tier together, 220ms ease-out, fully suppressed
+under `prefers-reduced-motion`.
 
-**FORM.** The category standard (canon), taken as the standing exit after the
-roll assigned The Conductor's Score and two challengers beat it; the user chose
-convention deliberately. Executed at the craft level of Apple's system apps,
-played straight with no irony and nothing smuggled in from the declined
-directions. Not a position on the grounded candidate list. Seed key 78dadada.
+**FORM.** Apple's card-and-glass system (Wallet / App Store / Health / Control
+Center), pinned directly by the user rather than drawn from the roll — a
+deliberate reversal of the previously recorded standing preference
+(grouped-list, no shadows), now itself recorded as the new standing direction
+in PRODUCT.md. Executed at the craft level of Apple's own first-party card
+apps: a real two-material system with restrained, purposeful accent use, never
+the web category's glassmorphism pastiche of rainbow blur cards adrift on a
+gradient background.
 
 **FINISH.** unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
 
 ## Unresolved
 
-- Whether the organizer's results table becomes a grouped list at phone width or
-  stays a horizontally scrolled table.
-- Where the theme override control lives.
+- Exact card corner radius at the smallest control sizes (badges, pills) —
+  resolve during build against the 10/14/20px scale above.
+- Whether the organizer's dense setup forms get any glass at all, or stay
+  fully solid content the way the STORY block leans; default to fully solid
+  unless a chrome-tier element (its own nav bar, its own alerts) needs it.
