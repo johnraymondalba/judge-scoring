@@ -5,10 +5,11 @@ A live scoring and tallying webapp for a judged competition.
 Opening the app asks who you are — **Judge** or **Organizer** — and each role signs in
 before it can do anything.
 
-- **Judge** — signs in with their name plus a 4–6 digit PIN that the organizer issued them.
-  They then score each participant (0–100 per criterion, by slider or by typing the number),
-  and the weighted total updates live. A progress bar tracks how many participants they have
-  left, and saving a score moves them straight on to the next unscored one.
+- **Judge** — picks their name, then enters the 4–6 digit PIN the organizer issued them on an
+  on-screen keypad (no device keyboard involved). They then score each participant with a
+  slider (or the +/- stepper next to it) for each criterion, and the weighted total updates
+  live. A progress bar tracks how many participants they have left, and saving a score moves
+  them straight on to the next unscored one.
 - **Organizer** — signs in with the organizer password. Sets the event name, the criteria
   (name, description, weight %), the participants, and the judges and their PINs. Also sees
   the live leaderboard: each judge's weighted score per participant and the overall average,
@@ -110,15 +111,17 @@ pages/
   api/auth/session.js reports who is currently signed in
 components/
   RoleChooser.js     the "Judge or Organizer" landing screen
-  LoginForm.js       judge PIN and organizer password forms
+  LoginForm.js       organizer password form and the judge's name + PIN-keypad sign-in
+  ConfirmDialog.js   confirmation alert for sign-out and any destructive setup change
   AdminPanel.js      event setup, including judge PIN management
   JudgePanel.js
   ResultsPanel.js
+  Icon.js            the single authored SVG icon set used everywhere in the UI
 lib/
   db.js              storage layer (Redis in production, JSON file fallback locally)
   auth.js            PIN hashing, session cookie signing and verification
   scoring.js         weighted-score and leaderboard calculations
-styles/globals.css   visual design
+styles/globals.css   visual design — see DESIGN.md for the full system
 ```
 
 ## Customizing
