@@ -1,4 +1,5 @@
 import { useState } from "react";
+import Icon from "./Icon";
 
 export default function LoginForm({ role, judges, onSignedIn }) {
   const [judgeId, setJudgeId] = useState("");
@@ -23,6 +24,8 @@ export default function LoginForm({ role, judges, onSignedIn }) {
       const data = await res.json();
       if (!res.ok) {
         setError(data.error || "Sign-in failed.");
+        // Only the wrong field is cleared. Re-typing a name you already picked
+        // is a punishment, and this happens while standing in a dark room.
         setPin("");
         setPassword("");
         return;
@@ -37,39 +40,39 @@ export default function LoginForm({ role, judges, onSignedIn }) {
 
   if (isJudge && eligible.length === 0) {
     return (
-      <div className="lock-wrap">
-        <div className="lock-card">
-          <h2>No judges set up yet</h2>
-          <p className="hint">
-            The organizer needs to add you as a judge and give you a PIN before you can sign in.
-          </p>
-        </div>
+      <div className="empty">
+        <span className="empty-title">No judges set up yet</span>
+        The organizer needs to add you as a judge and give you a PIN before you can sign in.
+        This page updates on its own once they do.
       </div>
     );
   }
 
-  return (
-    <div className="lock-wrap">
-      <div className="lock-card">
-        <h2>{isJudge ? "Judge sign-in" : "Organizer sign-in"}</h2>
-        <p className="hint">
-          {isJudge
-            ? "Pick your name, then enter the PIN the organizer gave you."
-            : "Enter the organizer password to manage the event and view results."}
-        </p>
+  const canSubmit = isJudge ? Boolean(judgeId) && pin.length >= 4 : Boolean(password);
 
-        <form onSubmit={submit}>
-          {isJudge ? (
-            <>
-              <div className="field">
-                <label htmlFor="judge-name">Your name</label>
+  return (
+    <form onSubmit={submit}>
+      {error && (
+        <div className="banner error" role="alert">
+          <Icon name="error" size={18} />
+          <span>{error}</span>
+        </div>
+      )}
+
+      {isJudge ? (
+        <>
+          <div className="group">
+            <div className="group-header">Your name</div>
+            <div className="list">
+              <div className="field-row">
+                <label htmlFor="judge-name">Judging as</label>
                 <select
                   id="judge-name"
                   value={judgeId}
                   onChange={(e) => setJudgeId(e.target.value)}
                   required
                 >
-                  <option value="">Select your name…</option>
+                  <option value="">Select your name</option>
                   {eligible.map((j) => (
                     <option key={j.id} value={j.id}>
                       {j.name}
@@ -77,26 +80,44 @@ export default function LoginForm({ role, judges, onSignedIn }) {
                   ))}
                 </select>
               </div>
-              <div className="field">
-                <label htmlFor="judge-pin">PIN</label>
+            </div>
+          </div>
+
+          <div className="group">
+            <div className="group-header">PIN</div>
+            <div className="list">
+              <div className="field-stack">
+                <label htmlFor="judge-pin" className="visually-hidden">
+                  Your 4 to 6 digit PIN
+                </label>
                 <input
                   id="judge-pin"
                   type="password"
                   inputMode="numeric"
                   autoComplete="one-time-code"
-                  pattern="\d*"
                   maxLength={6}
                   value={pin}
                   onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
-                  placeholder="4–6 digits"
-                  className="pin-input"
+                  placeholder="••••"
+                  className="pin-field"
                   required
                 />
               </div>
-            </>
-          ) : (
-            <div className="field">
-              <label htmlFor="admin-password">Password</label>
+            </div>
+            <div className="group-footer">
+              The organizer issued this to you privately. If it does not work, ask them to
+              reset it — they can issue a new one in seconds.
+            </div>
+          </div>
+        </>
+      ) : (
+        <div className="group">
+          <div className="group-header">Organizer password</div>
+          <div className="list">
+            <div className="field-stack">
+              <label htmlFor="admin-password" className="visually-hidden">
+                Organizer password
+              </label>
               <input
                 id="admin-password"
                 type="password"
@@ -108,23 +129,18 @@ export default function LoginForm({ role, judges, onSignedIn }) {
                 required
               />
             </div>
-          )}
+          </div>
+          <div className="group-footer">
+            This unlocks event setup and the live results. Judges never see this screen.
+          </div>
+        </div>
+      )}
 
-          {error && (
-            <div className="lock-error" role="alert">
-              {error}
-            </div>
-          )}
-
-          <button
-            type="submit"
-            className="btn accent btn-full"
-            disabled={busy || (isJudge ? !judgeId || pin.length < 4 : !password)}
-          >
-            {busy ? "Signing in…" : "Sign in"}
-          </button>
-        </form>
+      <div className="toolbar">
+        <button type="submit" className="btn filled block" disabled={busy || !canSubmit}>
+          {busy ? "Signing in…" : "Sign in"}
+        </button>
       </div>
-    </div>
+    </form>
   );
 }

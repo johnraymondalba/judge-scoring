@@ -5,25 +5,72 @@ import JudgePanel from "../components/JudgePanel";
 import ResultsPanel from "../components/ResultsPanel";
 import RoleChooser from "../components/RoleChooser";
 import LoginForm from "../components/LoginForm";
-import BackBar from "../components/BackBar";
 import ConfirmDialog from "../components/ConfirmDialog";
+import Icon from "../components/Icon";
 
-const ADMIN_TABS = [
-  { id: "admin", label: "Setup" },
-  { id: "results", label: "Results" },
+const THEME_KEY = "judging_theme";
+const THEMES = [
+  { id: "system", icon: "contrast", label: "Match my device" },
+  { id: "light", icon: "sun", label: "Light" },
+  { id: "dark", icon: "moon", label: "Dark" },
 ];
+
+function applyTheme(theme) {
+  const root = document.documentElement;
+  if (theme === "system") root.removeAttribute("data-theme");
+  else root.setAttribute("data-theme", theme);
+}
 
 export default function Home() {
   const [state, setState] = useState(null);
   const [session, setSession] = useState(null);
   const [warnings, setWarnings] = useState(null);
-  const [authView, setAuthView] = useState("choose"); // choose | judge | admin
+  const [authView, setAuthView] = useState("choose");
   const [tab, setTab] = useState("admin");
   const [participantId, setParticipantId] = useState("");
   const [expandedResult, setExpandedResult] = useState(null);
   const [confirmSignOut, setConfirmSignOut] = useState(false);
+  const [theme, setTheme] = useState("system");
+  const [scrolled, setScrolled] = useState(false);
   const [booted, setBooted] = useState(false);
   const [error, setError] = useState(null);
+
+  // ---- theme ----
+
+  useEffect(() => {
+    let stored = "system";
+    try {
+      stored = window.localStorage.getItem(THEME_KEY) || "system";
+    } catch (e) {
+      stored = "system";
+    }
+    setTheme(stored);
+    applyTheme(stored);
+  }, []);
+
+  function cycleTheme() {
+    const next = THEMES[(THEMES.findIndex((t) => t.id === theme) + 1) % THEMES.length].id;
+    setTheme(next);
+    applyTheme(next);
+    try {
+      window.localStorage.setItem(THEME_KEY, next);
+    } catch (e) {
+      /* per-viewer convenience only */
+    }
+  }
+
+  // ---- the title bar only grows a hairline once content is behind it ----
+
+  useEffect(() => {
+    function onScroll() {
+      setScrolled(window.scrollY > 12);
+    }
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // ---- data ----
 
   const loadState = useCallback(async () => {
     try {
@@ -54,8 +101,6 @@ export default function Home() {
     })();
   }, [loadSession, loadState]);
 
-  // Only poll once somebody is signed in — there is nothing live to watch on
-  // the sign-in screen, and it keeps idle phones off the network.
   useEffect(() => {
     if (!session) return undefined;
     const interval = setInterval(loadState, 6000);
@@ -113,40 +158,33 @@ export default function Home() {
   const eventName = state ? state.eventName : "Judging Scoresheet";
   const isAdmin = session && session.role === "admin";
   const isJudge = session && session.role === "judge";
+  const participant =
+    state && participantId ? state.participants.find((p) => p.id === participantId) : null;
 
-  /**
-   * Back always steps up exactly one level rather than jumping to the start,
-   * so nobody loses their place by accident. Only the top level of a role
-   * leaves it, and that path is confirmed first.
-   */
+  // ---- navigation ----
+  //
+  // Back steps up exactly one level rather than jumping to the start, and the
+  // label names the screen it returns to. Leaving a role signs you out, so
+  // that step confirms first.
+
   function resolveBack() {
     if (!session) {
       if (authView === "choose") return null;
-      return { label: "Choose a different role", run: () => setAuthView("choose") };
+      return { label: "Roles", run: () => setAuthView("choose") };
     }
-
     if (isJudge) {
-      if (participantId) {
-        return { label: "Back to all participants", run: () => setParticipantId("") };
-      }
-      return { label: "Choose a different role", run: () => setConfirmSignOut(true) };
+      if (participantId) return { label: "Participants", run: () => setParticipantId("") };
+      return { label: "Roles", run: () => setConfirmSignOut(true) };
     }
-
     if (tab === "results") {
-      if (expandedResult) {
-        return { label: "Back to the results table", run: () => setExpandedResult(null) };
-      }
-      return { label: "Back to setup", run: () => setTab("admin") };
+      if (expandedResult) return { label: "Results", run: () => setExpandedResult(null) };
+      return { label: "Setup", run: () => setTab("admin") };
     }
-    return { label: "Choose a different role", run: () => setConfirmSignOut(true) };
+    return { label: "Roles", run: () => setConfirmSignOut(true) };
   }
 
   const back = resolveBack();
   const canGoBack = Boolean(back);
-
-  // The device back button and back gesture run the same step-up logic as the
-  // back bar. A guard entry is kept on the history stack so a press can be
-  // intercepted; without it, back would leave the app entirely.
   const backRef = useRef(null);
   backRef.current = back;
 
@@ -158,8 +196,6 @@ export default function Home() {
     return () => window.removeEventListener("popstate", onPopState);
   }, []);
 
-  // Re-armed after every render, so there is always exactly one guard entry
-  // whenever there is somewhere to go back to.
   useEffect(() => {
     if (!canGoBack) return;
     const armed = Boolean(window.history.state && window.history.state.judgingGuard);
@@ -169,113 +205,166 @@ export default function Home() {
   function goBack() {
     if (!back) return;
     const armed = Boolean(window.history.state && window.history.state.judgingGuard);
-    // Popping the guard keeps the browser's history in step with the app, and
-    // the popstate handler above performs the actual navigation.
     if (armed) window.history.back();
     else back.run();
   }
+
+  // ---- titles ----
+
+  let title = eventName;
+  let subtitle = null;
+
+  if (!session) {
+    if (authView === "judge") {
+      title = "Judge sign-in";
+      subtitle = eventName;
+    } else if (authView === "admin") {
+      title = "Organizer sign-in";
+      subtitle = eventName;
+    } else {
+      subtitle = "Live scoring and automatic tally";
+    }
+  } else if (isJudge) {
+    if (participant) {
+      const index = state.participants.findIndex((p) => p.id === participantId);
+      title = participant.name;
+      subtitle = participant.team
+        ? `${participant.team} · ${index + 1} of ${state.participants.length}`
+        : `${index + 1} of ${state.participants.length}`;
+    } else {
+      title = "Score";
+      subtitle = `Judging as ${session.judgeName}`;
+    }
+  } else {
+    title = tab === "results" ? "Results" : "Setup";
+    subtitle = eventName;
+  }
+
+  const themeMeta = THEMES.find((t) => t.id === theme) || THEMES[0];
+  const wide = isAdmin ? " wide" : "";
 
   return (
     <>
       <Head>
         <title>{eventName}</title>
       </Head>
-      <div className="shell">
-        <header className="masthead">
-          <div>
-            <h1>{booted ? eventName : "Loading…"}</h1>
-            <div className="tag">Live scoring &amp; automatic tally</div>
-          </div>
-          {session && (
-            <div className="masthead-meta">
-              <div className="who">
-                <span className="dot" />
-                {isJudge ? `Judging as ${session.judgeName}` : "Organizer"}
-              </div>
-              <button className="btn-icon" onClick={() => setConfirmSignOut(true)}>
-                Sign out
+
+      <div className="app">
+        <div className={`nav ${scrolled ? "scrolled" : ""}`}>
+          <div className={`nav-inner${wide}`}>
+            {back ? (
+              <button className="nav-back" onClick={goBack}>
+                <Icon name="chevronLeft" size={22} />
+                <span>{back.label}</span>
               </button>
+            ) : (
+              <span className="nav-spacer" />
+            )}
+
+            <span className="nav-title">{title}</span>
+
+            <button
+              className="nav-action"
+              onClick={cycleTheme}
+              aria-label={`Appearance: ${themeMeta.label}. Tap to change.`}
+              title={`Appearance: ${themeMeta.label}`}
+            >
+              <Icon name={themeMeta.icon} size={21} />
+            </button>
+          </div>
+        </div>
+
+        <div className={`large-title${wide}`}>
+          <h1>{booted ? title : "Loading…"}</h1>
+          {subtitle && <p className="subtitle">{subtitle}</p>}
+        </div>
+
+        <main className={`content${wide}`}>
+          {error && (
+            <div className="banner error" role="alert">
+              <Icon name="error" size={18} />
+              <span>{error}</span>
             </div>
           )}
-        </header>
 
-        <BackBar label={back ? back.label : null} onBack={goBack} />
+          {/* Deployment errata is organizer business; judges never see it. */}
+          {isAdmin && state && state._fallback && (
+            <div className="banner warn">
+              <Icon name="warning" size={18} />
+              <span>
+                Running on local file storage — scores will not sync between devices. Add a Redis
+                database in your Vercel project settings so every judge shares one scoresheet.
+              </span>
+            </div>
+          )}
+          {isAdmin && warnings && (warnings.defaultAdminPassword || warnings.defaultSessionSecret) && (
+            <div className="banner warn">
+              <Icon name="warning" size={18} />
+              <span>
+                This deployment is still using built-in development credentials. Set{" "}
+                {warnings.defaultAdminPassword && <code>ADMIN_PASSWORD</code>}
+                {warnings.defaultAdminPassword && warnings.defaultSessionSecret && " and "}
+                {warnings.defaultSessionSecret && <code>SESSION_SECRET</code>} before the real
+                event.
+              </span>
+            </div>
+          )}
 
-        {error && <div className="banner warn">{error}</div>}
+          {!booted && <div className="empty">Loading scoresheet…</div>}
 
-        {/* Storage and configuration warnings are organizer business — judges
-            shouldn't be shown deployment errata mid-event. */}
-        {isAdmin && state && state._fallback && (
-          <div className="banner warn">
-            Running on local file storage — scores won&apos;t sync between different devices.
-            Add a Redis database in your Vercel project settings so every judge shares one live
-            scoresheet. See the README for setup steps.
-          </div>
-        )}
-        {isAdmin && warnings && (warnings.defaultAdminPassword || warnings.defaultSessionSecret) && (
-          <div className="banner warn">
-            This deployment is still using the built-in development credentials. Set{" "}
-            {warnings.defaultAdminPassword && <code>ADMIN_PASSWORD</code>}
-            {warnings.defaultAdminPassword && warnings.defaultSessionSecret && " and "}
-            {warnings.defaultSessionSecret && <code>SESSION_SECRET</code>} as environment variables
-            before the real event.
-          </div>
-        )}
+          {booted && !session && authView === "choose" && <RoleChooser onChoose={setAuthView} />}
 
-        {!booted && <div className="empty">Loading scoresheet…</div>}
+          {booted && !session && authView !== "choose" && (
+            <LoginForm
+              role={authView}
+              judges={state ? state.judges : []}
+              onSignedIn={handleSignedIn}
+            />
+          )}
 
-        {booted && !session && authView === "choose" && (
-          <RoleChooser eventName={eventName} onChoose={setAuthView} />
-        )}
+          {booted && state && isJudge && (
+            <JudgePanel
+              state={state}
+              judge={session}
+              participantId={participantId}
+              onParticipantChange={setParticipantId}
+              onSubmitScore={submitScore}
+            />
+          )}
 
-        {booted && !session && authView !== "choose" && (
-          <LoginForm
-            role={authView}
-            judges={state ? state.judges : []}
-            onSignedIn={handleSignedIn}
-          />
-        )}
-
-        {booted && state && isJudge && (
-          <JudgePanel
-            state={state}
-            judge={session}
-            participantId={participantId}
-            onParticipantChange={setParticipantId}
-            onSubmitScore={submitScore}
-          />
-        )}
-
-        {booted && state && isAdmin && (
-          <>
-            <nav className="tabs">
-              {ADMIN_TABS.map((t) => (
+          {booted && state && isAdmin && (
+            <>
+              <div className="segmented" role="tablist" aria-label="Organizer sections">
                 <button
-                  key={t.id}
-                  className={`tab ${tab === t.id ? "active" : ""}`}
+                  role="tab"
+                  aria-selected={tab === "admin"}
                   onClick={() => {
-                    setTab(t.id);
+                    setTab("admin");
                     setExpandedResult(null);
                   }}
                 >
-                  {t.label}
+                  Setup
                 </button>
-              ))}
-            </nav>
-            {tab === "admin" && <AdminPanel state={state} onPatch={patchState} />}
-            {tab === "results" && (
-              <ResultsPanel
-                state={state}
-                expanded={expandedResult}
-                onExpandedChange={setExpandedResult}
-              />
-            )}
-          </>
-        )}
+                <button
+                  role="tab"
+                  aria-selected={tab === "results"}
+                  onClick={() => setTab("results")}
+                >
+                  Results
+                </button>
+              </div>
 
-        <div className="footer-note">
-          {session ? "scores refresh automatically every 6s" : "sign in to continue"}
-        </div>
+              {tab === "admin" && <AdminPanel state={state} onPatch={patchState} />}
+              {tab === "results" && (
+                <ResultsPanel
+                  state={state}
+                  expanded={expandedResult}
+                  onExpandedChange={setExpandedResult}
+                />
+              )}
+            </>
+          )}
+        </main>
       </div>
 
       <ConfirmDialog
@@ -283,11 +372,11 @@ export default function Home() {
         title="Sign out?"
         message={
           isJudge
-            ? "You'll need your PIN from the organizer to sign back in. Every score you've already submitted stays saved."
-            : "You'll need the organizer password to sign back in. Nothing you've set up is lost."
+            ? "You will need your PIN from the organizer to sign back in. Every score you have already sent stays saved."
+            : "You will need the organizer password to sign back in. Nothing you have set up is lost."
         }
         confirmLabel="Sign out"
-        cancelLabel="Stay here"
+        cancelLabel="Stay"
         onConfirm={signOut}
         onCancel={() => setConfirmSignOut(false)}
       />

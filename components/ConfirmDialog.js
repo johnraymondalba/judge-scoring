@@ -1,12 +1,11 @@
 import { useEffect, useRef } from "react";
 
 /**
- * Confirmation prompt for anything irreversible: signing out, and removing a
+ * System-style alert for anything irreversible: signing out, and removing a
  * criterion, participant or judge once scores exist.
  *
- * It traps focus while open and restores it to whatever opened it. Without the
- * trap, `aria-modal` would be a claim the implementation does not honour —
- * Tab would walk straight out into the page behind the overlay.
+ * Focus is trapped while open and restored to whatever opened it. Without the
+ * trap, `aria-modal` would be a claim the implementation does not honour.
  */
 export default function ConfirmDialog({
   open,
@@ -35,9 +34,7 @@ export default function ConfirmDialog({
       }
       if (e.key !== "Tab" || !cardRef.current) return;
 
-      const focusable = cardRef.current.querySelectorAll(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-      );
+      const focusable = cardRef.current.querySelectorAll("button");
       if (focusable.length === 0) return;
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
@@ -54,8 +51,6 @@ export default function ConfirmDialog({
     window.addEventListener("keydown", onKeyDown);
     return () => {
       window.removeEventListener("keydown", onKeyDown);
-      // Send focus back where it came from, so a keyboard user is not dumped
-      // at the top of the document after cancelling.
       if (openerRef.current && openerRef.current.focus) openerRef.current.focus();
     };
   }, [open, onCancel]);
@@ -63,24 +58,27 @@ export default function ConfirmDialog({
   if (!open) return null;
 
   return (
-    <div className="modal-overlay" onClick={onCancel}>
+    <div className="alert-scrim" onClick={onCancel}>
       <div
-        className="modal-card"
-        role="dialog"
+        className="alert"
+        role="alertdialog"
         aria-modal="true"
-        aria-labelledby="confirm-title"
+        aria-labelledby="alert-title"
+        aria-describedby="alert-message"
         ref={cardRef}
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 id="confirm-title">{title}</h2>
-        <p>{message}</p>
-        <div className="modal-actions">
-          <button type="button" className="btn secondary" ref={cancelRef} onClick={onCancel}>
+        <div className="alert-body">
+          <h2 id="alert-title">{title}</h2>
+          <p id="alert-message">{message}</p>
+        </div>
+        <div className="alert-actions">
+          <button type="button" ref={cancelRef} onClick={onCancel} className="preferred">
             {cancelLabel}
           </button>
           <button
             type="button"
-            className={`btn ${tone === "danger" ? "danger" : "accent"}`}
+            className={tone === "danger" ? "destructive" : ""}
             onClick={onConfirm}
           >
             {confirmLabel}
