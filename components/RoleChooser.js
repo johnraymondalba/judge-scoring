@@ -4,7 +4,7 @@ export default function RoleChooser({ onChoose }) {
   return (
     <div className="group">
       <div className="group-header">Choose how you are joining</div>
-      <div className="list">
+      <div className="list spaced">
         <button className="row" onClick={() => onChoose("judge")}>
           <span className="row-icon tint">
             <Icon name="gavel" size={17} />

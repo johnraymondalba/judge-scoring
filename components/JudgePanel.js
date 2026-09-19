@@ -79,13 +79,13 @@ function CriterionRow({ criterion, value, open, onToggle, onChange }) {
         onClick={onToggle}
       >
         <span className="row-main">
-          <span className="row-label" id={labelId}>
-            {criterion.name}
+          <span className="row-label-line">
+            <span className="row-label" id={labelId}>
+              {criterion.name}
+            </span>
+            <span className="badge">{criterion.weight}%</span>
           </span>
-          <span className="row-sublabel">
-            Worth {criterion.weight}% of the total
-            {has ? "" : " · not scored yet"}
-          </span>
+          {!has && <span className="row-sublabel">Not scored yet</span>}
         </span>
         <span className="row-trail">
           <span className={`score-value ${has ? "" : "unset"}`}>{has ? value : "—"}</span>
@@ -345,7 +345,7 @@ export default function JudgePanel({
 
       <div className="group">
         <div className="group-header">Criteria</div>
-        <div className="list">
+        <div className="list spaced">
           {criteria.map((c) => (
             <CriterionRow
               key={c.id}
@@ -364,7 +364,7 @@ export default function JudgePanel({
       </div>
 
       <div className="group">
-        <div className="list">
+        <div className="list raised">
           <div className="row">
             <span className="row-main">
               <span className="row-label strong">Weighted total</span>

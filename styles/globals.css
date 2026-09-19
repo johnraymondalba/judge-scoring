@@ -1,14 +1,21 @@
 /* ============================================================================
    Judging scoresheet — visual system
    ----------------------------------------------------------------------------
-   The grammar is the native grouped-list system: inset rounded groups on a
-   recessed ground, one tint carrying every interactive element, a system type
-   ramp, hairline separators inset to the text origin, and 44px minimum rows.
-   Adopted honestly as a system rather than imitated as chrome.
+   Apple's card-and-glass material system: floating, continuous-corner cards
+   hold every piece of data, and a translucent vibrancy layer is reserved for
+   chrome alone — the nav bar, the floating action bar, alerts, and the PIN
+   keypad sheet. The two materials never mix: a card that carries a score or a
+   field is always solid, so text on it keeps full contrast whatever is
+   moving in the blur behind the chrome above it. One tint still carries every
+   interactive element, and depth comes from a restrained two-layer shadow
+   system across three elevation tiers, never from a single heavy drop shadow.
 
    Two grounds invert between light and dark. A judge scores in a dimmed
    auditorium; an organizer works on a laptop. Neither is forced into the
    other's lighting, so the theme follows the device and can be overridden.
+   In dark mode, elevation leans on a lighter surface per tier plus a hairline
+   edge rather than on shadow, since a black shadow on the near-black grouped
+   ground would otherwise be invisible.
 
    Secondary and tertiary label tones are deliberately darker than the platform
    originals: the stock values sit near 3.5:1, and this product commits to
@@ -51,6 +58,29 @@
   --fill-2: rgba(120, 120, 128, 0.12);
   --fill-3: rgba(120, 120, 128, 0.08);
 
+  /* Card material: three elevation tiers, each a lighter fill (dark mode's
+     depth cue) paired with an ambient+key shadow (light mode's depth cue). */
+  --bg-card-1: var(--bg-surface);
+  --bg-card-2: var(--bg-surface);
+  --bg-card-3: var(--bg-elevated);
+  --card-edge: rgba(0, 0, 0, 0.05);
+  --shadow-resting: 0 1px 2px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-raised: 0 2px 4px rgba(0, 0, 0, 0.06), 0 4px 16px rgba(0, 0, 0, 0.12);
+  --shadow-floating: 0 4px 8px rgba(0, 0, 0, 0.08), 0 12px 32px rgba(0, 0, 0, 0.18);
+
+  /* Glass chrome: translucent vibrancy, confined to nav, the floating action
+     bar, alerts, and the PIN sheet. Never applied to a surface holding data.
+     Two thicknesses, matching how the platform itself varies material: thin
+     for the nav bar, which floats over the page's own predictable grounds;
+     thick for anything that must stay legible over whatever the page behind
+     it happens to be doing, since a solid control sitting exactly behind a
+     thin material bleeds through its blur as a stray patch of color. */
+  --glass-surface: color-mix(in srgb, var(--bg-surface) 78%, transparent);
+  --glass-surface-thick: color-mix(in srgb, var(--bg-surface) 90%, transparent);
+  --glass-edge: rgba(0, 0, 0, 0.06);
+  --glass-blur: 24px;
+  --glass-saturate: 180%;
+
   /* Type ramp */
   --f-large-title: 2.125rem;
   --f-title-1: 1.75rem;
@@ -68,8 +98,10 @@
   --font-num: ui-rounded, -apple-system, BlinkMacSystemFont, "Segoe UI",
     system-ui, sans-serif;
 
-  /* Geometry */
-  --r-group: 12px;
+  /* Geometry. Corner radius scales with a surface's role: a page-level card,
+     a compact chrome sheet (alert, PIN pad), then a control. */
+  --r-group: 20px;
+  --r-card-sm: 16px;
   --r-control: 10px;
   --r-pill: 980px;
   --row-min: 44px;
@@ -77,7 +109,7 @@
   --inset: 16px;
 
   --ease: cubic-bezier(0.32, 0.72, 0, 1);
-  --dur: 240ms;
+  --dur: 220ms;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -109,6 +141,15 @@
     --fill-1: rgba(120, 120, 128, 0.36);
     --fill-2: rgba(120, 120, 128, 0.24);
     --fill-3: rgba(120, 120, 128, 0.16);
+
+    /* Dark elevation leans on a lighter fill per tier plus a visible hairline
+       edge; a black shadow would not read against the near-black ground. */
+    --bg-card-2: var(--bg-surface-2);
+    --bg-card-3: var(--bg-elevated);
+    --card-edge: rgba(255, 255, 255, 0.09);
+    --glass-surface: color-mix(in srgb, var(--bg-surface) 68%, transparent);
+    --glass-surface-thick: color-mix(in srgb, var(--bg-surface) 84%, transparent);
+    --glass-edge: rgba(255, 255, 255, 0.08);
   }
 }
 
@@ -140,6 +181,13 @@
   --fill-1: rgba(120, 120, 128, 0.36);
   --fill-2: rgba(120, 120, 128, 0.24);
   --fill-3: rgba(120, 120, 128, 0.16);
+
+  --bg-card-2: var(--bg-surface-2);
+  --bg-card-3: var(--bg-elevated);
+  --card-edge: rgba(255, 255, 255, 0.09);
+  --glass-surface: color-mix(in srgb, var(--bg-surface) 68%, transparent);
+  --glass-surface-thick: color-mix(in srgb, var(--bg-surface) 84%, transparent);
+  --glass-edge: rgba(255, 255, 255, 0.08);
 }
 
 /* ---------- base ---------- */
@@ -238,8 +286,8 @@ button {
   top: 0;
   z-index: 20;
   background: color-mix(in srgb, var(--bg-grouped) 82%, transparent);
-  backdrop-filter: saturate(180%) blur(20px);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(var(--glass-saturate)) blur(var(--glass-blur));
+  -webkit-backdrop-filter: saturate(var(--glass-saturate)) blur(var(--glass-blur));
   border-bottom: 1px solid transparent;
   transition: border-color var(--dur) var(--ease);
   padding-top: env(safe-area-inset-top);
@@ -361,18 +409,66 @@ button {
   color: var(--label-2);
 }
 
+/* The default card: one solid surface holding every row, corners continuous,
+   depth from the resting shadow tier. Rows inside stay divided by hairlines. */
 .list {
-  background: var(--bg-surface);
+  background: var(--bg-card-1);
+  border: 1px solid var(--card-edge);
   border-radius: var(--r-group);
+  box-shadow: var(--shadow-resting);
   overflow: hidden;
 }
 
-/* Hairlines are inset to the text origin, never full-bleed. */
-.row + .row,
-.row + .row-expandable,
-.row-expandable + .row,
-.row-expandable + .row-expandable {
+/* Hairlines are inset to the text origin, never full-bleed, and only ever
+   separate rows sharing one flush card. */
+.list:not(.spaced) > .row + .row,
+.list:not(.spaced) > .row + .row-expandable,
+.list:not(.spaced) > .row-expandable + .row,
+.list:not(.spaced) > .row-expandable + .row-expandable {
   box-shadow: inset 0 1px 0 var(--separator);
+}
+
+/* A spaced list is a stack of independent floating cards instead — the role
+   chooser, the judge's criteria, and the results standings, where each item
+   is its own object rather than a line in a ledger. */
+.list.spaced {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: none;
+  border: none;
+  box-shadow: none;
+  border-radius: 0;
+  overflow: visible;
+}
+
+.list.spaced > .row,
+.list.spaced > .row-expandable {
+  background: var(--bg-card-1);
+  border: 1px solid var(--card-edge);
+  border-radius: var(--r-group);
+  box-shadow: var(--shadow-resting);
+  overflow: hidden;
+  transition: box-shadow var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+
+.list.spaced > .row {
+  min-height: 56px;
+  padding: 16px var(--inset);
+}
+
+/* The signature interaction: an open card lifts a tier, so the expansion
+   reads as the card coming forward rather than merely growing taller. */
+.list.spaced > .row-expandable.open {
+  background: var(--bg-card-2);
+  box-shadow: var(--shadow-raised);
+}
+
+/* A standalone card that is a summary rather than a list item — the judge's
+   weighted total — sits a tier above the ordinary resting card by default. */
+.list.raised {
+  background: var(--bg-card-2);
+  box-shadow: var(--shadow-raised);
 }
 
 .row {
@@ -411,6 +507,26 @@ a.row:active {
 
 .row-label.strong {
   font-weight: 600;
+}
+
+/* Name leading, a small pill for a secondary fact beside it — the judge's
+   criterion cards put the weight here rather than in the trailing position,
+   which the score value owns. The name wraps its own text across lines
+   under the pill's fixed width, rather than the pill itself ever dropping
+   to a line of its own. */
+.row-label-line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.row-label-line > .row-label {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.row-label-line > .badge {
+  flex: 0 0 auto;
 }
 
 .row-sublabel {
@@ -573,7 +689,7 @@ a.row:active {
   border-radius: 50%;
   background: #fff;
   border: 0.5px solid rgba(0, 0, 0, 0.04);
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15), 0 1px 1px rgba(0, 0, 0, 0.16);
+  box-shadow: var(--shadow-raised);
 }
 
 .slider::-moz-range-thumb {
@@ -582,7 +698,7 @@ a.row:active {
   border-radius: 50%;
   background: #fff;
   border: 0.5px solid rgba(0, 0, 0, 0.04);
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15), 0 1px 1px rgba(0, 0, 0, 0.16);
+  box-shadow: var(--shadow-raised);
 }
 
 /* An unscored criterion has no thumb to brush: absence is not a value. */
@@ -695,17 +811,32 @@ a.row:active {
   width: 100%;
 }
 
-/* Bottom-anchored primary action, clear of the home indicator. */
+/* The primary action floats clear of the bottom edge in glass chrome, rather
+   than sitting flush against it — a floating action bar, not a docked toolbar. */
+/* Fixed, not sticky-in-flow: a sticky element still reserves its box in the
+   document's height, so on a short screen (few criteria, a short list) its
+   "stuck" position can land on top of whatever content happens to already
+   sit in that same range, rather than after it. Fixed removes it from flow
+   entirely, and .content's own padding-bottom (below) reserves its height. */
 .toolbar {
-  position: sticky;
-  bottom: 0;
+  position: fixed;
+  left: 50%;
+  bottom: calc(env(safe-area-inset-bottom) + 10px);
+  transform: translateX(-50%);
+  width: calc(min(720px, 100vw) - 2 * var(--gutter));
   z-index: 15;
-  margin: 8px calc(var(--gutter) * -1) 0;
-  padding: 12px var(--gutter) calc(env(safe-area-inset-bottom) + 12px);
-  background: color-mix(in srgb, var(--bg-grouped) 88%, transparent);
-  backdrop-filter: saturate(180%) blur(20px);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
-  border-top: 1px solid var(--separator);
+  padding: 10px;
+  border-radius: var(--r-group);
+  background: var(--glass-surface-thick);
+  backdrop-filter: saturate(var(--glass-saturate)) blur(var(--glass-blur));
+  -webkit-backdrop-filter: saturate(var(--glass-saturate)) blur(var(--glass-blur));
+  border: 1px solid var(--glass-edge);
+  box-shadow: var(--shadow-floating);
+}
+
+/* Clearance so the fixed toolbar never overlaps the last card above it. */
+.content:has(.toolbar) {
+  padding-bottom: calc(env(safe-area-inset-bottom) + 130px);
 }
 
 .toolbar-note {
@@ -737,9 +868,9 @@ a.row:active {
 }
 
 .segmented button[aria-selected="true"] {
-  background: var(--bg-surface);
+  background: var(--bg-card-1);
   font-weight: 600;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12), 0 1px 1px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--shadow-resting);
 }
 
 /* ---------- form fields ---------- */
@@ -939,14 +1070,19 @@ a.row:active {
   -webkit-backdrop-filter: blur(2px);
 }
 
+/* An alert is chrome, not content: it floats in glass over the scrim rather
+   than sitting as a solid card. */
 .alert {
   width: 100%;
   max-width: 300px;
-  background: var(--bg-elevated);
-  border-radius: 14px;
+  background: var(--glass-surface-thick);
+  backdrop-filter: saturate(var(--glass-saturate)) blur(var(--glass-blur));
+  -webkit-backdrop-filter: saturate(var(--glass-saturate)) blur(var(--glass-blur));
+  border: 1px solid var(--glass-edge);
+  border-radius: var(--r-card-sm);
   overflow: hidden;
   text-align: center;
-  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.28), 0 2px 6px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--shadow-floating);
 }
 
 .alert-body {
@@ -995,6 +1131,192 @@ a.row:active {
   font-weight: 600;
 }
 
+/* ---------- PIN sheet ---------- */
+/*
+   The judge's on-screen keypad: a glass sheet, anchored to the bottom edge on
+   a phone and centered as a floating card from 520px up. No system keyboard
+   ever appears — every digit is a tap on this sheet's own keys.
+*/
+
+.sheet-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 110;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
+  background: var(--bg-scrim);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+
+.sheet {
+  width: 100%;
+  max-width: 420px;
+  padding: 6px 24px calc(env(safe-area-inset-bottom) + 22px);
+  background: var(--glass-surface-thick);
+  backdrop-filter: saturate(var(--glass-saturate)) blur(var(--glass-blur));
+  -webkit-backdrop-filter: saturate(var(--glass-saturate)) blur(var(--glass-blur));
+  border: 1px solid var(--glass-edge);
+  border-bottom: none;
+  border-radius: var(--r-card-sm) var(--r-card-sm) 0 0;
+  box-shadow: var(--shadow-floating);
+  animation: sheet-up var(--dur) var(--ease) both;
+}
+
+@keyframes sheet-up {
+  from {
+    transform: translateY(28px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+.sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0 0;
+}
+
+.sheet-action {
+  min-height: 44px;
+  padding: 0 6px;
+  color: var(--tint);
+  font-size: var(--f-body);
+}
+
+.sheet-action.strong {
+  font-weight: 600;
+}
+
+.sheet-action:disabled {
+  color: var(--label-3);
+}
+
+.sheet-title {
+  font-size: var(--f-headline);
+  font-weight: 600;
+}
+
+.sheet-subtitle {
+  margin: 0 0 22px;
+  text-align: center;
+  font-size: var(--f-subhead);
+  color: var(--label-2);
+}
+
+.pin-dots {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin: 0 0 20px;
+}
+
+.pin-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--fill-2);
+  border: 1px solid var(--card-edge);
+  transition: background var(--dur) var(--ease);
+}
+
+.pin-dot.filled {
+  background: var(--tint);
+  border-color: transparent;
+}
+
+.pin-dots.shake {
+  animation: pin-shake 420ms var(--ease);
+}
+
+@keyframes pin-shake {
+  10%,
+  90% {
+    transform: translateX(-1px);
+  }
+  20%,
+  80% {
+    transform: translateX(2px);
+  }
+  30%,
+  50%,
+  70% {
+    transform: translateX(-6px);
+  }
+  40%,
+  60% {
+    transform: translateX(6px);
+  }
+}
+
+.sheet-error {
+  margin: -8px 0 16px;
+  text-align: center;
+  font-size: var(--f-footnote);
+  color: var(--red);
+}
+
+.keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin: 0 0 8px;
+}
+
+/* Keys are a translucent fill over the sheet's own blur, not a second solid
+   material — a glass control on a glass ground. */
+.keypad-key {
+  aspect-ratio: 1;
+  min-height: 60px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--fill-2);
+  color: var(--label);
+  font-family: var(--font-num);
+  font-size: 1.625rem;
+  font-weight: 500;
+  transition: background var(--dur) var(--ease), transform 120ms var(--ease);
+}
+
+.keypad-key:active {
+  background: var(--fill-1);
+  transform: scale(0.96);
+}
+
+.keypad-key:disabled {
+  color: var(--label-3);
+  opacity: 0.5;
+  transform: none;
+}
+
+.keypad-key--text {
+  font-family: var(--font);
+  font-size: var(--f-subhead);
+  font-weight: 500;
+  color: var(--label-2);
+  background: transparent;
+}
+
+@media (min-width: 520px) {
+  .sheet-scrim {
+    align-items: center;
+    padding: 20px;
+  }
+
+  .sheet {
+    border-radius: var(--r-card-sm);
+    border-bottom: 1px solid var(--glass-edge);
+    padding-bottom: 26px;
+  }
+}
+
 /* ---------- empty + role chooser ---------- */
 
 .empty {
@@ -1015,11 +1337,15 @@ a.row:active {
 
 /* ---------- results ---------- */
 
+/* This sits inside an already-raised standing card, so it reads as an inset
+   area of that card — bg-surface-2's own role — rather than a second,
+   competing shadow stacked on the first. */
 .table-wrap {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  border-radius: var(--r-group);
-  background: var(--bg-surface);
+  border-radius: var(--r-control);
+  border: 1px solid var(--card-edge);
+  background: var(--bg-surface-2);
 }
 
 table.grid {
@@ -1057,10 +1383,13 @@ table.grid .num {
 }
 
 /* The participant column keeps its referent while judge columns scroll. */
+/* The table now sits on bg-surface-2 (this wrap's inset ground), so the
+   sticky column matches it rather than the brighter bg-surface it used to
+   sit on when the table-wrap was its own raised card. */
 table.grid .sticky-col {
   position: sticky;
   left: 0;
-  background: var(--bg-surface);
+  background: var(--bg-surface-2);
   z-index: 1;
 }
 
@@ -1120,12 +1449,23 @@ table.grid thead .sticky-col {
 
   .toolbar {
     position: static;
+    left: auto;
+    bottom: auto;
+    transform: none;
+    width: auto;
     margin: 0;
     padding: 20px 0 0;
     background: none;
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
-    border-top: none;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  /* Back in normal flow on a laptop, the toolbar needs no reserved clearance. */
+  .content:has(.toolbar) {
+    padding-bottom: 0;
   }
 
   .toolbar .btn.block {

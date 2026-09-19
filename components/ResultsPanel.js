@@ -158,7 +158,7 @@ export default function ResultsPanel({ state, expanded, onExpandedChange }) {
 
       <div className="group">
         <div className="group-header">Standings</div>
-        <div className="list">
+        <div className="list spaced">
           {leaderboard.map((row, i) => {
             const isOpen = expanded === row.participant.id;
             const panelId = `bd-${row.participant.id}`;

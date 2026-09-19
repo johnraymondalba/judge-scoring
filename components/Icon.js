@@ -99,6 +99,12 @@ const paths = {
       <path d="M12 13.5v3M9 19.5h6" />
     </>
   ),
+  backspace: (
+    <>
+      <path d="M8.5 5.5h10a1.5 1.5 0 0 1 1.5 1.5v10a1.5 1.5 0 0 1-1.5 1.5h-10L3.5 12l5-6.5Z" />
+      <path d="M11 9.5l5 5M16 9.5l-5 5" />
+    </>
+  ),
 };
 
 export default function Icon({ name, size = 20, className = "", title }) {
