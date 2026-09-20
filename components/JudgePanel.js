@@ -1,6 +1,114 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { scoreKey, weightedTotal } from "../lib/scoring";
 import Icon from "./Icon";
+
+function ScoreSentModal({ participant, countdown, onReturn }) {
+  const returnRef = useRef(null);
+
+  useEffect(() => {
+    if (returnRef.current) returnRef.current.focus();
+
+    function onKeyDown(e) {
+      if (e.key === "Escape" || e.key === "Enter") {
+        e.preventDefault();
+        onReturn();
+      }
+    }
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onReturn]);
+
+  if (!participant) return null;
+
+  return (
+    <div className="alert-scrim" onClick={onReturn}>
+      <div
+        className="alert"
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="sent-title"
+        aria-describedby="sent-message"
+        onClick={(e) => e.stopPropagation()}
+        style={{ maxWidth: 320 }}
+      >
+        <div className="alert-body" style={{ padding: "24px 20px 18px" }}>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 14 }}>
+            <span
+              className="row-icon green"
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: "50%",
+                display: "grid",
+                placeItems: "center",
+                boxShadow: "0 4px 12px rgba(28, 122, 62, 0.25)",
+              }}
+            >
+              <Icon name="check" size={26} />
+            </span>
+          </div>
+          <h2 id="sent-title" style={{ fontSize: "var(--f-title-3)", marginBottom: 6 }}>
+            Scores Sent!
+          </h2>
+          <p
+            id="sent-message"
+            style={{ fontSize: "var(--f-subhead)", color: "var(--label-2)", lineHeight: 1.45 }}
+          >
+            Your scores for <strong>{participant.name}</strong>
+            {participant.team ? ` (${participant.team})` : ""} have been successfully sent.
+          </p>
+          <div
+            style={{
+              marginTop: 14,
+              padding: "6px 14px",
+              borderRadius: "var(--r-pill)",
+              background: "var(--fill-2)",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              fontSize: "var(--f-caption)",
+              color: "var(--label-2)",
+            }}
+          >
+          </div>
+        </div>
+        <div className="alert-actions">
+          <button
+            type="button"
+            ref={returnRef}
+            className="preferred"
+            onClick={onReturn}
+            style={{ fontWeight: 600 }}
+          >
+            Select Next Team ({countdown}s)
+          </button>
+        </div>
+        <div
+          style={{
+            height: 5,
+            width: "100%",
+            background: "var(--fill-2)",
+            overflow: "hidden",
+          }}
+          role="progressbar"
+          aria-valuenow={countdown}
+          aria-valuemin={0}
+          aria-valuemax={15}
+        >
+          <div
+            style={{
+              height: "100%",
+              width: `${Math.max(0, (countdown / 15) * 100)}%`,
+              background: "var(--tint)",
+              transition: "width 1s linear",
+            }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 /** Scores start empty rather than at a midpoint: an untouched criterion must
  *  never be indistinguishable from a deliberate score. */
@@ -151,6 +259,8 @@ export default function JudgePanel({
   const [openCriterion, setOpenCriterion] = useState(null);
   const [status, setStatus] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [submittedParticipant, setSubmittedParticipant] = useState(null);
+  const [countdown, setCountdown] = useState(15);
 
   const existing = participantId ? scores[scoreKey(judge.judgeId, participantId)] : null;
 
@@ -161,6 +271,30 @@ export default function JudgePanel({
     });
     return set;
   }, [participants, scores, judge.judgeId]);
+
+  function handleReturn() {
+    setSubmittedParticipant(null);
+    setCountdown(15);
+    onParticipantChange("");
+  }
+
+  useEffect(() => {
+    if (!submittedParticipant) return undefined;
+
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          handleReturn();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [submittedParticipant]);
 
   useEffect(() => {
     if (!participantId) {
@@ -243,9 +377,9 @@ export default function JudgePanel({
     try {
       await onSubmitScore(participantId, draftScores);
       clearStoredDraft(draftStorageKey(judge.judgeId, participantId));
-      const next = nextUnscoredAfter(participantId);
-      if (next) onParticipantChange(next);
-      else onParticipantChange("");
+      const target = participants.find((p) => p.id === participantId);
+      setSubmittedParticipant(target || { name: "Participant" });
+      setCountdown(15);
     } catch (err) {
       setStatus({ kind: "error", text: err.message });
     } finally {
@@ -319,6 +453,12 @@ export default function JudgePanel({
             before the organizer closes the event.
           </div>
         </div>
+
+        <ScoreSentModal
+          participant={submittedParticipant}
+          countdown={countdown}
+          onReturn={handleReturn}
+        />
       </>
     );
   }
@@ -389,6 +529,12 @@ export default function JudgePanel({
             : `${missing.length} of ${criteria.length} criteria still need a score`}
         </p>
       </div>
+
+      <ScoreSentModal
+        participant={submittedParticipant}
+        countdown={countdown}
+        onReturn={handleReturn}
+      />
     </>
   );
 }
