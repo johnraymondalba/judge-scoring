@@ -8,7 +8,7 @@ function uid(prefix) {
 }
 
 function randomPin() {
-  return String(Math.floor(1000 + Math.random() * 9000));
+  return String(Math.floor(100000 + Math.random() * 900000));
 }
 
 const serialize = (value) => JSON.stringify(value);
@@ -424,10 +424,10 @@ function JudgesSection({ state, onPatch }) {
               j.pin
                 ? "New PIN ready to save"
                 : j.clearPin
-                ? "Access will be revoked on save"
-                : j.hasPin
-                ? "Can sign in"
-                : "Cannot sign in yet"
+                  ? "Access will be revoked on save"
+                  : j.hasPin
+                    ? "Can sign in"
+                    : "Cannot sign in yet"
             }
             trail={
               <span
