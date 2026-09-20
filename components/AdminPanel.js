@@ -383,6 +383,7 @@ function JudgesSection({ state, onPatch }) {
   const { save, error, busy } = useSave(onPatch);
   const [pendingRemove, setPendingRemove] = useState(null);
   const [open, setOpen] = useState(null);
+  const [showPin, setShowPin] = useState(null);
 
   function update(id, patch) {
     setRows((r) => r.map((j) => (j.id === id ? { ...j, ...patch } : j)));
@@ -396,7 +397,15 @@ function JudgesSection({ state, onPatch }) {
 
   async function onSave() {
     const ok = await save({ judges: rows });
-    if (ok) setRows((r) => r.map(({ pin, clearPin, ...rest }) => ({ ...rest, hasPin: !clearPin })));
+    if (ok) {
+      setRows((r) =>
+        r.map(({ pin, clearPin, ...rest }) => ({
+          ...rest,
+          assignedPin: clearPin ? undefined : pin || rest.assignedPin,
+          hasPin: !clearPin && Boolean(pin || rest.assignedPin),
+        }))
+      );
+    }
   }
 
   const affected = pendingRemove ? scoresForJudge(state.scores, pendingRemove.id) : 0;
@@ -471,18 +480,64 @@ function JudgesSection({ state, onPatch }) {
                   </button>
                 </div>
               </div>
-            ) : (
+            ) : showPin === j.id ? (
+              <div className="field-stack" style={{ padding: "12px 0 0" }}>
+                <label htmlFor={`pp-${j.id}`}>Assigned PIN for {j.name || "this judge"}</label>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <input
+                    id={`pp-${j.id}`}
+                    type="text"
+                    className="pin-field"
+                    readOnly
+                    value={j.assignedPin || "••••••"}
+                    style={{ letterSpacing: "2px", fontWeight: 600 }}
+                  />
+                </div>
+                {!j.assignedPin && j.hasPin && (
+                  <p className="row-sublabel" style={{ marginTop: 6, color: "var(--amber, #f59e0b)" }}>
+                    This PIN was set before preview support was enabled. Click &ldquo;Reset PIN&rdquo; to assign a new previewable PIN.
+                  </p>
+                )}
+              </div>
+            ) : null}
+
+            {!j.pin && (
               <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
                 <button
                   className="btn tinted"
-                  onClick={() => update(j.id, { pin: randomPin(), clearPin: false })}
+                  onClick={() => {
+                    setShowPin(null);
+                    update(j.id, { pin: randomPin(), clearPin: false });
+                  }}
                 >
                   <Icon name="lock" size={17} /> {j.hasPin ? "Reset PIN" : "Set a PIN"}
                 </button>
+
+                {j.hasPin && !j.clearPin && (
+                  <button
+                    type="button"
+                    className="btn tinted"
+                    onClick={() => setShowPin(showPin === j.id ? null : j.id)}
+                  >
+                    {showPin === j.id ? (
+                      <>
+                        <Icon name="eye-off" size={17} /> Hide PIN
+                      </>
+                    ) : (
+                      <>
+                        <Icon name="eye" size={17} /> Preview PIN
+                      </>
+                    )}
+                  </button>
+                )}
+
                 {j.hasPin && !j.clearPin && (
                   <button
                     className="btn destructive-plain"
-                    onClick={() => update(j.id, { clearPin: true })}
+                    onClick={() => {
+                      setShowPin(null);
+                      update(j.id, { clearPin: true });
+                    }}
                   >
                     Revoke access
                   </button>
