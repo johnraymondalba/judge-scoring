@@ -114,6 +114,7 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
+    color-scheme: dark;
     --bg-grouped: #000000;
     --bg-surface: #1c1c1e;
     --bg-surface-2: #2c2c2e;
@@ -154,6 +155,7 @@
 }
 
 :root[data-theme="dark"] {
+  color-scheme: dark;
   --bg-grouped: #000000;
   --bg-surface: #1c1c1e;
   --bg-surface-2: #2c2c2e;
@@ -190,7 +192,19 @@
   --glass-edge: rgba(255, 255, 255, 0.08);
 }
 
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+
 /* ---------- base ---------- */
+
+
+select option {
+  background-color: var(--bg-surface);
+  color: var(--label);
+}
+
 
 * {
   box-sizing: border-box;
@@ -421,10 +435,10 @@ button {
 
 /* Hairlines are inset to the text origin, never full-bleed, and only ever
    separate rows sharing one flush card. */
-.list:not(.spaced) > .row + .row,
-.list:not(.spaced) > .row + .row-expandable,
-.list:not(.spaced) > .row-expandable + .row,
-.list:not(.spaced) > .row-expandable + .row-expandable {
+.list:not(.spaced)>.row+.row,
+.list:not(.spaced)>.row+.row-expandable,
+.list:not(.spaced)>.row-expandable+.row,
+.list:not(.spaced)>.row-expandable+.row-expandable {
   box-shadow: inset 0 1px 0 var(--separator);
 }
 
@@ -442,8 +456,8 @@ button {
   overflow: visible;
 }
 
-.list.spaced > .row,
-.list.spaced > .row-expandable {
+.list.spaced>.row,
+.list.spaced>.row-expandable {
   background: var(--bg-card-1);
   border: 1px solid var(--card-edge);
   border-radius: var(--r-group);
@@ -452,14 +466,14 @@ button {
   transition: box-shadow var(--dur) var(--ease), background var(--dur) var(--ease);
 }
 
-.list.spaced > .row {
+.list.spaced>.row {
   min-height: 56px;
   padding: 16px var(--inset);
 }
 
 /* The signature interaction: an open card lifts a tier, so the expansion
    reads as the card coming forward rather than merely growing taller. */
-.list.spaced > .row-expandable.open {
+.list.spaced>.row-expandable.open {
   background: var(--bg-card-2);
   box-shadow: var(--shadow-raised);
 }
@@ -520,12 +534,12 @@ a.row:active {
   gap: 8px;
 }
 
-.row-label-line > .row-label {
+.row-label-line>.row-label {
   flex: 1 1 auto;
   min-width: 0;
 }
 
-.row-label-line > .badge {
+.row-label-line>.badge {
   flex: 0 0 auto;
 }
 
@@ -582,12 +596,15 @@ a.row:active {
 .row-icon.tint {
   background: var(--tint);
 }
+
 .row-icon.green {
   background: var(--green);
 }
+
 .row-icon.amber {
   background: var(--amber);
 }
+
 .row-icon.red {
   background: var(--red);
 }
@@ -617,7 +634,7 @@ a.row:active {
   width: 100%;
 }
 
-.row-expandable > .row {
+.row-expandable>.row {
   box-shadow: none;
 }
 
@@ -628,11 +645,11 @@ a.row:active {
   transition: grid-template-rows var(--dur) var(--ease);
 }
 
-.row-expandable.open > .row-body {
+.row-expandable.open>.row-body {
   grid-template-rows: 1fr;
 }
 
-.row-body > div {
+.row-body>div {
   min-height: 0;
 }
 
@@ -1119,7 +1136,7 @@ a.row:active {
   background: var(--fill-3);
 }
 
-.alert-actions button + button {
+.alert-actions button+button {
   border-left: 1px solid var(--separator);
 }
 
@@ -1170,6 +1187,7 @@ a.row:active {
     transform: translateY(28px);
     opacity: 0;
   }
+
   to {
     transform: none;
     opacity: 1;
@@ -1236,19 +1254,23 @@ a.row:active {
 }
 
 @keyframes pin-shake {
+
   10%,
   90% {
     transform: translateX(-1px);
   }
+
   20%,
   80% {
     transform: translateX(2px);
   }
+
   30%,
   50%,
   70% {
     transform: translateX(-6px);
   }
+
   40%,
   60% {
     transform: translateX(6px);
@@ -1419,15 +1441,18 @@ table.grid thead .sticky-col {
 
 /* ---------- utility ---------- */
 
-.stack-8 > * + * {
+.stack-8>*+* {
   margin-top: 8px;
 }
-.stack-12 > * + * {
+
+.stack-12>*+* {
   margin-top: 12px;
 }
+
 .mt-0 {
   margin-top: 0;
 }
+
 .visually-hidden {
   position: absolute;
   width: 1px;
@@ -1485,6 +1510,7 @@ table.grid thead .sticky-col {
 /* ---------- reduced motion ---------- */
 
 @media (prefers-reduced-motion: reduce) {
+
   *,
   *::before,
   *::after {
