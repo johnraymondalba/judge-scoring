@@ -34,11 +34,13 @@ function mergeJudges(incoming, existing) {
     const base = {
       id: row.id,
       name: typeof row.name === "string" ? row.name.trim() : "",
+      assignedPin: prior ? prior.assignedPin : undefined,
       pinHash: prior ? prior.pinHash : undefined,
       pinSalt: prior ? prior.pinSalt : undefined,
     };
 
     if (row.clearPin) {
+      delete base.assignedPin;
       delete base.pinHash;
       delete base.pinSalt;
       return base;
@@ -51,7 +53,7 @@ function mergeJudges(incoming, existing) {
         throw err;
       }
       const { pinHash, pinSalt } = hashPin(row.pin);
-      return { ...base, pinHash, pinSalt };
+      return { ...base, assignedPin: row.pin, pinHash, pinSalt };
     }
 
     return base;
@@ -61,10 +63,11 @@ function mergeJudges(incoming, existing) {
 export default async function handler(req, res) {
   try {
     const session = readSession(req);
+    const isAdmin = Boolean(session && session.role === "admin");
 
     if (req.method === "GET") {
       const state = await getState();
-      const publicState = stripSecrets(state);
+      const publicState = stripSecrets(state, isAdmin);
       return res.status(200).json({
         ...publicState,
         scores: visibleScores(state.scores, session),
@@ -73,7 +76,7 @@ export default async function handler(req, res) {
     }
 
     if (req.method === "PATCH") {
-      if (!session || session.role !== "admin") {
+      if (!isAdmin) {
         return res.status(401).json({ error: "Organizer sign-in required." });
       }
 
@@ -88,7 +91,7 @@ export default async function handler(req, res) {
 
       const next = await patchConfig(patch);
       return res.status(200).json({
-        ...stripSecrets(next),
+        ...stripSecrets(next, true),
         scores: visibleScores(next.scores, session),
         _fallback: usingFallbackStorage(),
       });
