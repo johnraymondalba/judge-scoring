@@ -6,14 +6,15 @@ Opening the app asks who you are — **Judge** or **Organizer** — and each rol
 before it can do anything.
 
 - **Judge** — picks their name, then enters the 4–6 digit PIN the organizer issued them on an
-  on-screen keypad (no device keyboard involved). They then score each participant with a
-  slider (or the +/- stepper next to it) for each criterion, and the weighted total updates
-  live. A progress bar tracks how many participants they have left, and saving a score moves
-  them straight on to the next unscored one.
+  on-screen keypad (no device keyboard involved). The team currently presenting is called
+  out on their dashboard; earlier teams remain pending only until that judge submits. They
+  score each criterion with a slider (or the +/- stepper), and submitted teams move into a
+  private review archive where the judge can replace their own score.
 - **Organizer** — signs in with the organizer password. Sets the event name, the criteria
-  (name, description, weight %), the participants, and the judges and their PINs. Also sees
-  the live leaderboard: each judge's weighted score per participant and the overall average,
-  ranked automatically, exportable as CSV.
+  (name, description, weight %), the participants, and the judges and their PINs. They also
+  set or revoke the team currently presenting and see the live leaderboard: each judge's
+  weighted score per participant and the overall average, ranked automatically, exportable
+  as CSV.
 
 Scores refresh automatically every 6 seconds, so everyone sees the same live tally.
 

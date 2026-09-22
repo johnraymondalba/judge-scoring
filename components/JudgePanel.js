@@ -272,6 +272,20 @@ export default function JudgePanel({
     return set;
   }, [participants, scores, judge.judgeId]);
 
+  const presentedParticipants = useMemo(() => {
+    const presentedIds = new Set(state.presentedParticipantIds || []);
+    return participants.filter((p) => presentedIds.has(p.id));
+  }, [participants, state.presentedParticipantIds]);
+
+  const activeParticipant = participants.find((p) => p.id === state.activeParticipantId) || null;
+  const activeNeedsScore = activeParticipant && !scoredIds.has(activeParticipant.id)
+    ? activeParticipant
+    : null;
+  const pendingParticipants = presentedParticipants.filter(
+    (p) => !scoredIds.has(p.id) && p.id !== (activeNeedsScore && activeNeedsScore.id)
+  );
+  const archivedParticipants = presentedParticipants.filter((p) => scoredIds.has(p.id));
+
   function handleReturn() {
     setSubmittedParticipant(null);
     setCountdown(15);
@@ -295,6 +309,12 @@ export default function JudgePanel({
     return () => clearInterval(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [submittedParticipant]);
+
+  useEffect(() => {
+    if (!participantId) return;
+    const isReleased = (state.presentedParticipantIds || []).includes(participantId);
+    if (!isReleased) onParticipantChange("");
+  }, [participantId, state.presentedParticipantIds, onParticipantChange]);
 
   useEffect(() => {
     if (!participantId) {
@@ -341,29 +361,18 @@ export default function JudgePanel({
   );
   const complete = missing.length === 0 && criteria.length > 0;
 
-  const done = scoredIds.size;
-  const totalCount = participants.length;
+  const done = archivedParticipants.length;
+  const totalCount = presentedParticipants.length;
   const pct = totalCount ? Math.round((done / totalCount) * 100) : 0;
 
-  if (participants.length === 0 || criteria.length === 0) {
+  if (criteria.length === 0) {
     return (
       <div className="empty">
         <span className="empty-title">Not ready yet</span>
-        The organizer is still setting up{" "}
-        {participants.length === 0 ? "the participants" : "the judging criteria"}. This page
-        updates on its own once they finish.
+        The organizer is still setting up the judging criteria. This page updates on its own
+        once they finish.
       </div>
     );
-  }
-
-  function nextUnscoredAfter(id) {
-    const order = participants.map((p) => p.id);
-    const start = order.indexOf(id);
-    for (let step = 1; step <= order.length; step += 1) {
-      const candidate = order[(start + step) % order.length];
-      if (candidate !== id && !scoredIds.has(candidate)) return candidate;
-    }
-    return null;
   }
 
   function setScore(criterionId, value) {
@@ -390,7 +399,7 @@ export default function JudgePanel({
   // ---- participant list ----
 
   if (!participantId) {
-    const allDone = done === totalCount && totalCount > 0;
+    const allDone = done === totalCount && totalCount > 0 && !activeNeedsScore;
 
     return (
       <>
@@ -399,12 +408,14 @@ export default function JudgePanel({
             <div className="row">
               <span className="row-main">
                 <span className="row-label strong">
-                  {done} of {totalCount} scored
+                  {done} scored · {pendingParticipants.length + (activeNeedsScore ? 1 : 0)} pending
                 </span>
                 <span className="row-sublabel">
-                  {allDone
-                    ? "You have scored everyone. Thank you — you can put your phone away."
-                    : "Your scores stay private to you until the organizer closes the event."}
+                  {totalCount === 0
+                    ? "Waiting for the organizer to announce the first team."
+                    : allDone
+                      ? "You are caught up. Submitted scores are available below for review."
+                      : "Only announced teams appear here. Your submitted scores stay private."}
                 </span>
               </span>
               {allDone && (
@@ -421,38 +432,79 @@ export default function JudgePanel({
           </div>
         </div>
 
-        <div className="group">
-          <div className="group-header">Participants</div>
-          <div className="list">
-            {participants.map((p) => {
-              const isScored = scoredIds.has(p.id);
-              return (
+        {activeNeedsScore && (
+          <div className="group">
+            <div className="group-header">Presenting now</div>
+            <div className="list raised">
+              <button
+                className="row"
+                onClick={() => onParticipantChange(activeNeedsScore.id)}
+              >
+                <span className="row-icon tint">
+                  <Icon name="person" size={17} />
+                </span>
+                <span className="row-main">
+                  <span className="row-label strong">{activeNeedsScore.name}</span>
+                  {activeNeedsScore.team && (
+                    <span className="row-sublabel">{activeNeedsScore.team}</span>
+                  )}
+                </span>
+                <span className="row-trail">
+                  <span className="badge tint">Score now</span>
+                  <Icon name="chevronRight" size={18} className="chevron" />
+                </span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {pendingParticipants.length > 0 && (
+          <div className="group">
+            <div className="group-header">Still needs your score</div>
+            <div className="list">
+              {pendingParticipants.map((p) => (
                 <button key={p.id} className="row" onClick={() => onParticipantChange(p.id)}>
                   <span className="row-main">
                     <span className="row-label strong">{p.name}</span>
                     {p.team && <span className="row-sublabel">{p.team}</span>}
                   </span>
                   <span className="row-trail">
-                    <span className={`badge ${isScored ? "green" : ""}`}>
-                      {isScored ? (
-                        <>
-                          <Icon name="check" size={12} /> Scored
-                        </>
-                      ) : (
-                        "Not scored"
-                      )}
+                    <span className="badge amber">Not scored</span>
+                    <Icon name="chevronRight" size={18} className="chevron" />
+                  </span>
+                </button>
+              ))}
+            </div>
+            <div className="group-footer">
+              These teams stay here after their presentation until you submit a score.
+            </div>
+          </div>
+        )}
+
+        {archivedParticipants.length > 0 && (
+          <div className="group">
+            <div className="group-header">Scored · Review archive</div>
+            <div className="list">
+              {archivedParticipants.map((p) => (
+                <button key={p.id} className="row" onClick={() => onParticipantChange(p.id)}>
+                  <span className="row-main">
+                    <span className="row-label strong">{p.name}</span>
+                    {p.team && <span className="row-sublabel">{p.team}</span>}
+                  </span>
+                  <span className="row-trail">
+                    <span className="badge green">
+                      <Icon name="check" size={12} /> Scored
                     </span>
                     <Icon name="chevronRight" size={18} className="chevron" />
                   </span>
                 </button>
-              );
-            })}
+              ))}
+            </div>
+            <div className="group-footer">
+              Only your submitted scores are shown. Open a team to review or replace your score.
+            </div>
           </div>
-          <div className="group-footer">
-            Tap a participant to score them. You can come back and change a score at any time
-            before the organizer closes the event.
-          </div>
-        </div>
+        )}
 
         <ScoreSentModal
           participant={submittedParticipant}
