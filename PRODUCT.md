@@ -69,6 +69,9 @@ mis-entered score cannot be recovered by re-watching anything.
   replaced or revoked.
 - The organizer defines the event name, the weighted criteria, the
   participants, and the judges.
+- The organizer controls which team is currently presenting. Unannounced
+  teams are hidden from judges; once announced, a team stays pending for each
+  judge until scored, then moves into that judge's private review archive.
 - Weighted total per participant per judge; final placing is the mean of the
   judges who scored them. Results export as CSV.
 - **The live leaderboard is organizer-only.** A signed-in judge sees only their

@@ -278,6 +278,10 @@ function ParticipantsSection({ state, onPatch }) {
   const { save, error, busy } = useSave(onPatch);
   const [pendingRemove, setPendingRemove] = useState(null);
   const [open, setOpen] = useState(null);
+  const [presentationBusy, setPresentationBusy] = useState(null);
+  const [presentationError, setPresentationError] = useState("");
+
+  const presentedIds = new Set(state.presentedParticipantIds || []);
 
   function update(id, field, value) {
     setRows((r) => r.map((p) => (p.id === id ? { ...p, [field]: value } : p)));
@@ -287,6 +291,18 @@ function ParticipantsSection({ state, onPatch }) {
     const row = { id: uid("p"), name: "New participant", team: "" };
     setRows((r) => [...r, row]);
     setOpen(row.id);
+  }
+
+  async function setPresenting(participantId) {
+    setPresentationBusy(participantId || "revoke");
+    setPresentationError("");
+    try {
+      await onPatch({ activeParticipantId: participantId });
+    } catch (err) {
+      setPresentationError(err.message || "Could not update the presenting team.");
+    } finally {
+      setPresentationBusy(null);
+    }
   }
 
   const affected = pendingRemove ? scoresForParticipant(state.scores, pendingRemove.id) : 0;
@@ -310,6 +326,23 @@ function ParticipantsSection({ state, onPatch }) {
             onToggle={() => setOpen(open === p.id ? null : p.id)}
             title={p.name || "Untitled"}
             subtitle={p.team || "No team or project name"}
+            trail={
+              <span
+                className={`badge ${
+                  state.activeParticipantId === p.id
+                    ? "green"
+                    : presentedIds.has(p.id)
+                      ? ""
+                      : "amber"
+                }`}
+              >
+                {state.activeParticipantId === p.id
+                  ? "Presenting"
+                  : presentedIds.has(p.id)
+                    ? "Presented"
+                    : "Not presented"}
+              </span>
+            }
           >
             <div className="field-stack" style={{ padding: 0 }}>
               <label htmlFor={`pn-${p.id}`}>Name</label>
@@ -330,6 +363,29 @@ function ParticipantsSection({ state, onPatch }) {
               />
             </div>
             <div style={{ marginTop: 14 }}>
+              {state.activeParticipantId === p.id ? (
+                <button
+                  type="button"
+                  className="btn destructive-plain"
+                  disabled={Boolean(presentationBusy)}
+                  onClick={() => setPresenting(null)}
+                >
+                  <Icon name="close" size={17} />
+                  {presentationBusy === "revoke" ? "Revoking…" : "Revoke presenting status"}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="btn tinted"
+                  disabled={Boolean(presentationBusy) || dirty}
+                  onClick={() => setPresenting(p.id)}
+                >
+                  <Icon name="eye" size={17} />
+                  {presentationBusy === p.id ? "Updating…" : "Set as presenting"}
+                </button>
+              )}
+            </div>
+            <div style={{ marginTop: 8 }}>
               <button className="btn destructive-plain" onClick={() => setPendingRemove(p)}>
                 <Icon name="trash" size={17} /> Remove this participant
               </button>
@@ -348,6 +404,19 @@ function ParticipantsSection({ state, onPatch }) {
           </span>
         </button>
       </div>
+
+      <div className="group-footer">
+        Only the presenting team is announced live to judges. Once you move on or revoke it,
+        the team stays visible only to judges who still need to submit; judges who have scored
+        it can review it in their archive.
+      </div>
+
+      {presentationError && (
+        <div className="banner error" role="alert" style={{ marginTop: 12 }}>
+          <Icon name="error" size={18} />
+          <span>{presentationError}</span>
+        </div>
+      )}
 
       <SaveBar
         dirty={dirty}

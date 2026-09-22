@@ -68,8 +68,14 @@ export default async function handler(req, res) {
     if (req.method === "GET") {
       const state = await getState();
       const publicState = stripSecrets(state, isAdmin);
+      const presentedIds = new Set(state.presentedParticipantIds || []);
       return res.status(200).json({
         ...publicState,
+        participants: isAdmin
+          ? publicState.participants
+          : session && session.role === "judge"
+            ? publicState.participants.filter((p) => presentedIds.has(p.id))
+            : [],
         scores: visibleScores(state.scores, session),
         _fallback: usingFallbackStorage(),
       });
@@ -85,9 +91,39 @@ export default async function handler(req, res) {
       const patch = {};
 
       if (Array.isArray(body.criteria)) patch.criteria = body.criteria;
-      if (Array.isArray(body.participants)) patch.participants = body.participants;
+      if (Array.isArray(body.participants)) {
+        patch.participants = body.participants;
+
+        // Removing a participant must also remove stale presentation state.
+        const remainingIds = new Set(body.participants.map((p) => p.id));
+        patch.presentedParticipantIds = (state.presentedParticipantIds || []).filter((id) =>
+          remainingIds.has(id)
+        );
+        if (state.activeParticipantId && !remainingIds.has(state.activeParticipantId)) {
+          patch.activeParticipantId = null;
+        }
+      }
       if (Array.isArray(body.judges)) patch.judges = mergeJudges(body.judges, state.judges);
       if (typeof body.eventName === "string") patch.eventName = body.eventName;
+
+      if (Object.prototype.hasOwnProperty.call(body, "activeParticipantId")) {
+        const activeId = body.activeParticipantId;
+        if (activeId !== null && typeof activeId !== "string") {
+          return res.status(400).json({ error: "Invalid presenting participant." });
+        }
+
+        const participants = patch.participants || state.participants;
+        if (activeId && !participants.some((p) => p.id === activeId)) {
+          return res.status(400).json({ error: "Unknown participant." });
+        }
+
+        patch.activeParticipantId = activeId;
+        if (activeId) {
+          patch.presentedParticipantIds = Array.from(
+            new Set([...(patch.presentedParticipantIds || state.presentedParticipantIds || []), activeId])
+          );
+        }
+      }
 
       const next = await patchConfig(patch);
       return res.status(200).json({

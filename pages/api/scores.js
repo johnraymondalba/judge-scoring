@@ -24,6 +24,11 @@ export default async function handler(req, res) {
       if (!state.participants.some((p) => p.id === participantId)) {
         return res.status(400).json({ error: "Unknown participant." });
       }
+      if (!(state.presentedParticipantIds || []).includes(participantId)) {
+        return res.status(403).json({
+          error: "This team has not been presented for judging yet.",
+        });
+      }
 
       // Every criterion must carry a real number. Rejecting partial submissions
       // here is what stops an untouched slider from quietly counting as a score.
