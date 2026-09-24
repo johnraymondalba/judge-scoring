@@ -19,7 +19,7 @@ export default async function handler(req, res) {
         return res.status(401).json({ error: "Incorrect organizer password." });
       }
       const session = { role: "admin" };
-      res.setHeader("Set-Cookie", sessionCookie(session));
+      res.setHeader("Set-Cookie", sessionCookie(req, session));
       return res.status(200).json(session);
     }
 
@@ -34,7 +34,7 @@ export default async function handler(req, res) {
       }
 
       const session = { role: "judge", judgeId: judge.id, judgeName: judge.name };
-      res.setHeader("Set-Cookie", sessionCookie(session));
+      res.setHeader("Set-Cookie", sessionCookie(req, session));
       return res.status(200).json(session);
     }
 

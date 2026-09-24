@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Head from "next/head";
+import Router from "next/router";
 import AdminPanel from "../components/AdminPanel";
 import JudgePanel from "../components/JudgePanel";
 import ResultsPanel from "../components/ResultsPanel";
@@ -115,14 +116,20 @@ export default function Home() {
     await Promise.all([loadSession(), loadState()]);
   }
 
+  // The screen changes first and the cookie is cleared after: on a slow venue
+  // network, waiting on the request made sign-out look like it had frozen.
   async function signOut() {
-    await fetch("/api/auth/logout", { method: "POST" });
     setSession(null);
     setWarnings(null);
     setAuthView("choose");
     setParticipantId("");
     setExpandedResult(null);
     setConfirmSignOut(false);
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch (e) {
+      /* the cookie expires on its own; the UI is already signed out */
+    }
     await loadState();
   }
 
@@ -172,15 +179,16 @@ export default function Home() {
       if (authView === "choose") return null;
       return { label: "Roles", run: () => setAuthView("choose") };
     }
+    const signOutStep = { label: "Roles", signOut: true, run: () => setConfirmSignOut(true) };
     if (isJudge) {
       if (participantId) return { label: "Participants", run: () => setParticipantId("") };
-      return { label: "Roles", run: () => setConfirmSignOut(true) };
+      return signOutStep;
     }
     if (tab === "results") {
       if (expandedResult) return { label: "Results", run: () => setExpandedResult(null) };
       return { label: "Setup", run: () => setTab("admin") };
     }
-    return { label: "Roles", run: () => setConfirmSignOut(true) };
+    return signOutStep;
   }
 
   const back = resolveBack();
@@ -188,12 +196,19 @@ export default function Home() {
   const backRef = useRef(null);
   backRef.current = back;
 
+  // The hardware/browser Back gesture is caught with a guard history entry so
+  // it steps up a level instead of leaving the app. This is a single-route
+  // app, so Next's own router is told to ignore those pops.
   useEffect(() => {
+    Router.beforePopState(() => false);
     function onPopState() {
       if (backRef.current) backRef.current.run();
     }
     window.addEventListener("popstate", onPopState);
-    return () => window.removeEventListener("popstate", onPopState);
+    return () => {
+      window.removeEventListener("popstate", onPopState);
+      Router.beforePopState(() => true);
+    };
   }, []);
 
   useEffect(() => {
@@ -202,11 +217,11 @@ export default function Home() {
     if (!armed) window.history.pushState({ judgingGuard: true }, "");
   });
 
+  // On-screen controls act immediately. Routing them through history.back()
+  // and waiting for popstate made the sign-out prompt slow to appear on iPad
+  // Safari, and it never appeared when WebKit skipped the guard entry.
   function goBack() {
-    if (!back) return;
-    const armed = Boolean(window.history.state && window.history.state.judgingGuard);
-    if (armed) window.history.back();
-    else back.run();
+    if (back) back.run();
   }
 
   // ---- titles ----
@@ -252,25 +267,33 @@ export default function Home() {
       <div className="app">
         <div className={`nav ${scrolled ? "scrolled" : ""}`}>
           <div className={`nav-inner${wide}`}>
-            {back ? (
-              <button className="nav-back" onClick={goBack}>
-                <Icon name="chevronLeft" size={22} />
-                <span>{back.label}</span>
-              </button>
-            ) : (
-              <span className="nav-spacer" />
-            )}
+            <span className="nav-side">
+              {back && !back.signOut && (
+                <button className="nav-back" onClick={goBack}>
+                  <Icon name="chevronLeft" size={22} />
+                  <span>{back.label}</span>
+                </button>
+              )}
+            </span>
 
             <span className="nav-title">{title}</span>
 
-            <button
-              className="nav-action"
-              onClick={cycleTheme}
-              aria-label={`Appearance: ${themeMeta.label}. Tap to change.`}
-              title={`Appearance: ${themeMeta.label}`}
-            >
-              <Icon name={themeMeta.icon} size={21} />
-            </button>
+            <span className="nav-side end">
+              {session && (
+                <button className="nav-signout" onClick={() => setConfirmSignOut(true)}>
+                  <Icon name="signOut" size={18} />
+                  <span>Sign out</span>
+                </button>
+              )}
+              <button
+                className="nav-action"
+                onClick={cycleTheme}
+                aria-label={`Appearance: ${themeMeta.label}. Tap to change.`}
+                title={`Appearance: ${themeMeta.label}`}
+              >
+                <Icon name={themeMeta.icon} size={21} />
+              </button>
+            </span>
           </div>
         </div>
 

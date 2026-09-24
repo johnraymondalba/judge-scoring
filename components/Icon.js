@@ -15,6 +15,12 @@ const paths = {
   plus: <path d="M12 5.5v13M5.5 12h13" />,
   minus: <path d="M5.5 12h13" />,
   close: <path d="M6 6l12 12M18 6L6 18" />,
+  signOut: (
+    <>
+      <path d="M13.5 4.5h-6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h6" />
+      <path d="M10.5 12h10M17 8.5l3.5 3.5-3.5 3.5" />
+    </>
+  ),
 
   gavel: (
     <>

@@ -372,8 +372,44 @@ button {
   opacity: 0.4;
 }
 
-.nav-spacer {
+.nav-side {
+  flex: 1 0 auto;
   min-width: 44px;
+  display: flex;
+  align-items: center;
+}
+
+.nav-side.end {
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+/* Sign-out is a labelled, tinted pill rather than a bare "Roles" link: on an
+   iPad Pro the old corner link read as navigation and was easy to miss. */
+.nav-signout {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: var(--r-pill);
+  background: var(--tint-wash);
+  color: var(--tint);
+  font-size: var(--f-subhead);
+  font-weight: 600;
+  white-space: nowrap;
+  position: relative;
+}
+
+/* Keeps the 44px touch target while the pill itself stays visually compact. */
+.nav-signout::before {
+  content: "";
+  position: absolute;
+  inset: -4px 0;
+}
+
+.nav-signout:active {
+  opacity: 0.6;
 }
 
 .large-title {
@@ -1470,6 +1506,12 @@ table.grid thead .sticky-col {
 @media (min-width: 760px) {
   .large-title h1 {
     font-size: 2.5rem;
+  }
+
+  .nav-signout {
+    min-height: 40px;
+    padding: 0 18px;
+    font-size: var(--f-body);
   }
 
   .toolbar {
