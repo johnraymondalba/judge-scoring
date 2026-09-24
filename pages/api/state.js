@@ -136,7 +136,7 @@ export default async function handler(req, res) {
     res.setHeader("Allow", ["GET", "PATCH"]);
     return res.status(405).json({ error: `Method ${req.method} not allowed` });
   } catch (err) {
-    if (err.statusCode === 400) return res.status(400).json({ error: err.message });
+    if (err.statusCode) return res.status(err.statusCode).json({ error: err.message });
     console.error(err);
     return res.status(500).json({ error: "Server error" });
   }

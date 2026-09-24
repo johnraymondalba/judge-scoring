@@ -73,10 +73,18 @@ export default function Home() {
 
   // ---- data ----
 
+  // A failed load keeps the last good state. Storing the error body as state
+  // crashed every screen that reads judges/participants from it, so one bad
+  // response during the event took the whole page down.
   const loadState = useCallback(async () => {
     try {
       const res = await fetch("/api/state");
-      setState(await res.json());
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !Array.isArray(data.judges) || !Array.isArray(data.participants)) {
+        setError(`${data.error || "The server could not load the scoresheet."} Retrying…`);
+        return;
+      }
+      setState(data);
       setError(null);
     } catch (e) {
       setError("Could not reach the server. Retrying…");
@@ -103,10 +111,12 @@ export default function Home() {
   }, [loadSession, loadState]);
 
   useEffect(() => {
-    if (!session) return undefined;
+    // Signed-out screens poll only while recovering from a failed load, so the
+    // judge name list fills in once the server is reachable again.
+    if (!session && !error) return undefined;
     const interval = setInterval(loadState, 6000);
     return () => clearInterval(interval);
-  }, [session, loadState]);
+  }, [session, error, loadState]);
 
   async function handleSignedIn(newSession) {
     setSession(newSession);
