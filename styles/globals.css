@@ -372,16 +372,25 @@ button {
   opacity: 0.4;
 }
 
+/* The leading side (back link) shrinks and truncates; the trailing side never
+   shrinks, so Sign out stays on screen in Split View, Stage Manager windows
+   and zoomed pages, not just at full iPad width. */
 .nav-side {
-  flex: 1 0 auto;
+  flex: 1 1 0;
   min-width: 44px;
   display: flex;
   align-items: center;
 }
 
 .nav-side.end {
+  flex: 0 0 auto;
   justify-content: flex-end;
   gap: 6px;
+}
+
+.nav-side .nav-back {
+  max-width: 100%;
+  min-width: 0;
 }
 
 /* Sign-out is a labelled, tinted pill rather than a bare "Roles" link: on an
