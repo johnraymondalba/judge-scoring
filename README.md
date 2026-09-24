@@ -83,7 +83,8 @@ instead of the local-file fallback. The easiest option is Vercel's free KV store
    tier is enough for this use case). Connect it to your project.
 4. This automatically adds `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` (or, on
    older accounts, `KV_REST_API_URL` / `KV_REST_API_TOKEN`) as environment variables on
-   your project.
+   your project. Vercel's own **Redis** store works too: it sets a single `REDIS_URL`,
+   which the app also accepts.
 5. In **Settings → Environment Variables**, also add your own `ADMIN_PASSWORD` and a long
    random `SESSION_SECRET`.
 6. Redeploy. The banner that says "local storage (dev mode)" disappears once every judge is
