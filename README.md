@@ -1,4 +1,4 @@
-# Food Technology Judging Scoresheet
+# Judging Scoresheet
 
 A live scoring and tallying webapp for a judged competition.
 
